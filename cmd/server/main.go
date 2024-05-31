@@ -22,33 +22,50 @@ func reqeustHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
-	pathSlice := strings.Split(r.URL.Path, "/")
+	pathSlice := pathCleaner(r.URL.Path) 
+	
+	
+	fmt.Println(pathSlice)
+
 	if len(pathSlice) <= 3 {
 		fmt.Println(pathSlice)
 		w.WriteHeader(http.StatusNotFound)
         return
 	} 
-	if pathSlice[2] != "gauge" && pathSlice[2] != "counter" {
-		w.WriteHeader(http.StatusExpectationFailed)
+	if pathSlice[1] != "gauge" && pathSlice[1] != "counter" {
+		w.WriteHeader(http.StatusBadRequest)
         return
 	}
 
-	switch pathSlice[2] {
+	switch pathSlice[1] {
 	case "gauge":
-		if value, err := strconv.ParseFloat(pathSlice[4], 64); err != nil {
+		if value, err := strconv.ParseFloat(pathSlice[3], 64); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		} else {
 			memory.gauge[pathSlice[2]] = value
 		}
 	case "counter": 
-		if value, err := strconv.ParseInt(pathSlice[4], 0, 64); err != nil {
+		if value, err := strconv.ParseInt(pathSlice[3], 0, 64); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		} else {
 			memory.counter[pathSlice[3]] += value
 		}
 	}
+}
+
+func pathCleaner(path string) []string {
+	path = strings.TrimSpace(path)
+	if strings.HasPrefix(path, "/") {
+        path = path[1:]
+    }
+	if strings.HasSuffix(path, "/") {
+        cut_off_last_char_len := len(path) - 1
+        path = path[:cut_off_last_char_len]
+    }
+	pathSlice := strings.Split(path, "/")
+	return pathSlice
 }
 
 func main() {
