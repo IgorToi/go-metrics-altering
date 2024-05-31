@@ -57,12 +57,8 @@ func reqeustHandler(w http.ResponseWriter, r *http.Request) {
 
 func pathCleaner(path string) []string {
 	path = strings.TrimSpace(path)
-	if strings.HasPrefix(path, "/") {
-        path = path[1:]
-    }
-	if strings.HasSuffix(path, "/") {
-        path = path[:len(path) - 1]
-    }
+	path = strings.TrimPrefix(path, "/")
+	path = strings.TrimSuffix(path, "/")
 	pathSlice := strings.Split(path, "/")
 	return pathSlice
 }
