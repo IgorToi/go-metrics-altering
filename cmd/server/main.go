@@ -61,8 +61,7 @@ func pathCleaner(path string) []string {
         path = path[1:]
     }
 	if strings.HasSuffix(path, "/") {
-        cut_off_last_char_len := len(path) - 1
-        path = path[:cut_off_last_char_len]
+        path = path[:len(path) - 1]
     }
 	pathSlice := strings.Split(path, "/")
 	return pathSlice
