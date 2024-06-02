@@ -24,7 +24,7 @@ func TestMekeRequest(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			defer srv.Close()
 			body, err := MakeRequest(srv.URL + test.path, srv.Client())
-
+			
 
 			assert.Equal(t, 0, len(body))
 			assert.NoError(t, err)
@@ -53,12 +53,12 @@ func TestUrlConstructor(t *testing.T) {
 				metricName: "PollCount",
 				valueMetric: 5,
 			},
-			want: "http://localhost:8080/update/count/PollCount/5.000000",
+			want: "http://localhost:8080/update/count/PollCount/5",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, UrlConstructor(tt.urlParts.serverAddress, tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
+			assert.Equal(t, tt.want, URLConstructor(tt.urlParts.serverAddress, tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
 		})
 	}
 }

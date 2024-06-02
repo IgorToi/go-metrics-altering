@@ -47,8 +47,8 @@ func MakeRequest(url string, agent *http.Client) (string, error) {
 
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 
-func UrlConstructor(serverAddress string, metricType string, metricName string, metricValue interface{}) string {
-	return fmt.Sprintf(fmt.Sprintf("%s/update/%s/%s/%f",serverAdress, metricType, metricName, metricValue))
+func URLConstructor(serverAddress string, metricType string, metricName string, metricValue interface{}) (string) {
+	return fmt.Sprint(serverAdress,"/update/",metricType,"/",metricName,"/", metricValue)
 }
 
 func main() {
@@ -58,14 +58,14 @@ func main() {
 	for {
 		time.Sleep(reportInterval * time.Second)
 		for i, v := range memory {
-			s := UrlConstructor(serverAdress, gaugeType, i, v)   
+			s := URLConstructor(serverAdress, gaugeType, i, v) 
 			resp, err := MakeRequest(s, agent)
 			if err != nil {
 				panic(err)
 			}
 			fmt.Println(resp)
 		}
-		s := UrlConstructor(serverAdress, countType, PollCount, float64(count))   
+		s := URLConstructor(serverAdress, countType, PollCount, float64(count))   
 		fmt.Println(s)
 		resp, err := MakeRequest(s, agent)
 		if err != nil {
