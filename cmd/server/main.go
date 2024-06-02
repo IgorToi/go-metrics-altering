@@ -17,15 +17,12 @@ var memory = &MemStorage{
 	counter: make(map[string]int64),
 }
 
-func reqeustHandler(w http.ResponseWriter, r *http.Request) {
+func ReqeustHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 	pathSlice := pathCleaner(r.URL.Path) 
-	
-	
-	fmt.Println(pathSlice)
 
 	if len(pathSlice) <= 3 {
 		fmt.Println(pathSlice)
@@ -53,6 +50,9 @@ func reqeustHandler(w http.ResponseWriter, r *http.Request) {
 			memory.counter[pathSlice[3]] += value
 		}
 	}
+
+	w.Header().Set("Content-Type", "text/plain")
+    w.WriteHeader(http.StatusOK)
 }
 
 func pathCleaner(path string) []string {
@@ -67,7 +67,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// endpoint `/update`
-	mux.HandleFunc(`/update/`, reqeustHandler) 
+	mux.HandleFunc(`/update/`, ReqeustHandler) 
 
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {
