@@ -15,7 +15,7 @@ const (
     reportInterval = 10
 	serverAdress = "http://localhost:8080"
 	gaugeType = "gauge"
-	countType = "count"
+	countType = "counter"
 	PollCount = "PollCount"
 )
 
@@ -52,7 +52,7 @@ func URLConstructor(serverAddress string, metricType string, metricName string, 
 }
 
 func main() {
-    // goroutine to update metrics every pollInterval
+    // start goroutine to update metrics every pollInterval
 	go UpdateMetrics()   
 	agent := &http.Client{}
 	for {
@@ -66,12 +66,11 @@ func main() {
 			fmt.Println(resp)
 		}
 		s := URLConstructor(serverAdress, countType, PollCount, float64(count))   
-		fmt.Println(s)
-		resp, err := MakeRequest(s, agent)
+		_, err := MakeRequest(s, agent)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(resp)
+
 	}   
 }
 

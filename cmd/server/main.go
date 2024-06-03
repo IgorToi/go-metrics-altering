@@ -1,76 +1,145 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
+	"text/template"
+
+	"github.com/go-chi/chi"
 )
 
+const htmlTemplate = `
+{{range $index, $element := .}}
+{{ $index }}: {{ $element }}
+{{end}}
+`
 type MemStorage struct {
 	gauge     map[string]float64
 	counter   map[string]int64
 }
 
-var memory = &MemStorage{
+var Memory = &MemStorage{
 	gauge: make(map[string]float64),
 	counter: make(map[string]int64),
 }
 
-func ReqeustHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+func (m *MemStorage) UpdateGaugeMetric(metricName string, metricValue float64) {
+	m.gauge[metricName] = metricValue
+}
+
+func (m *MemStorage) UpdateCounterMetric(metricName string, metricValue int64) {
+	m.counter[metricName] += metricValue
+}
+
+func (m *MemStorage) GetGaugeMetricFromMemory(metricName string) float64 {
+	return m.gauge[metricName]
+}
+
+func (m *MemStorage) GetCountMetricFromMemory(metricName string) int64 {
+	return m.counter[metricName]
+}
+
+func (m *MemStorage) CheckIfGaugeMetricPresent(metricName string) bool {
+	_, ok := m.gauge[metricName]
+	return ok
+}
+
+func (m *MemStorage) CheckIfCountMetricPresent(metricName string) bool {
+	_, ok := m.counter[metricName]
+	return ok
+}
+
+
+func UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	if metricName ==  "" {
+		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
-	pathSlice := pathCleaner(r.URL.Path) 
 
-	if len(pathSlice) <= 3 {
-		fmt.Println(pathSlice)
-		w.WriteHeader(http.StatusNotFound)
-        return
-	} 
-	if pathSlice[1] != "gauge" && pathSlice[1] != "counter" {
-		w.WriteHeader(http.StatusBadRequest)
-        return
-	}
+	metricValue := chi.URLParam(r, "metricValue")
 
-	switch pathSlice[1] {
+	switch metricType {
 	case "gauge":
-		if value, err := strconv.ParseFloat(pathSlice[3], 64); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+		metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
 			return
-		} else {
-			memory.gauge[pathSlice[2]] = value
 		}
-	case "counter": 
-		if value, err := strconv.ParseInt(pathSlice[3], 0, 64); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+		Memory.UpdateGaugeMetric(metricName, metricValueConverted)
+	case "counter":
+		metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
 			return
-		} else {
-			memory.counter[pathSlice[3]] += value
 		}
-	}
+		Memory.UpdateCounterMetric(metricName, metricValueConverted)
 
-	w.Header().Set("Content-Type", "text/plain")
-    w.WriteHeader(http.StatusOK)
+	default:
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 }
 
-func pathCleaner(path string) []string {
-	path = strings.TrimSpace(path)
-	path = strings.TrimPrefix(path, "/")
-	path = strings.TrimSuffix(path, "/")
-	pathSlice := strings.Split(path, "/")
-	return pathSlice
+func ValueHandle(rw http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	switch metricType {
+	case "gauge":
+		if !Memory.CheckIfGaugeMetricPresent(metricName) {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		}
+		rw.Write([]byte(strconv.FormatFloat(Memory.GetGaugeMetricFromMemory(metricName),'f', -1, 64)))
+	case "counter":
+		if !Memory.CheckIfCountMetricPresent(metricName) {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		}
+		rw.Write([]byte(strconv.FormatInt(Memory.GetCountMetricFromMemory(metricName), 10)))
+	default:
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 }
 
-func main() {
-	mux := http.NewServeMux()
+func InformationHandle(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	t := template.New("t")
+    t, err := t.Parse(htmlTemplate)
+    if err != nil {
+        panic(err)
+    }
+	
+    err = t.Execute(rw, convertToSingleMap(Memory.gauge, Memory.counter))
+    if err != nil {
+        panic(err)
+    }
+}
 
-	// endpoint `/update`
-	mux.HandleFunc(`/update/`, ReqeustHandler) 
+func MetricRouter() chi.Router {
+	r := chi.NewRouter()
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandle)
+	r.Get("/value/{metricType}/{metricName}", ValueHandle)
+	r.Get("/", InformationHandle)
+	return r
+}
 
-	err := http.ListenAndServe(`:8080`, mux)
-	if err != nil {
-		panic(err)
+
+func main() {	
+	http.ListenAndServe(":8080", MetricRouter())
+}
+
+func convertToSingleMap(a map[string]float64, b map[string]int64) map[string]interface{} {
+	c := make(map[string]interface{})
+	for i, v := range a {
+		c[i] = v
 	}
+	for j, l := range b {
+		c[j] = l
+	}
+	return c
 }
