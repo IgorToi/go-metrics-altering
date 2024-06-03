@@ -69,6 +69,7 @@ func TestRouter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		resp := testRequest(t, ts, "POST", tt.url)
+		defer resp.Body.Close()
 		assert.Equal(t, tt.want.code, resp.StatusCode)
 
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
@@ -99,6 +100,7 @@ func TestInformationHandle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		resp := testRequest(t, ts, "GET", tt.url)
+		defer resp.Body.Close()
 		assert.Equal(t, tt.want.code, resp.StatusCode)
 
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
@@ -138,6 +140,7 @@ func TestValueHandle(t *testing.T) {
 	for _, tt := range tests {
 		Memory.gauge["Alloc"] = 45
 		resp := testRequest(t, ts, "GET", tt.url)
+		defer resp.Body.Close()
 		assert.Equal(t, tt.want.code, resp.StatusCode)
 
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
