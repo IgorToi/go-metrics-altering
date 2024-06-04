@@ -15,7 +15,7 @@ const (
 	gaugeType = "gauge"
 	countType = "counter"
 	PollCount = "PollCount"
-	protocolScheme = "http://localhost"
+	protocolScheme = "http://"
 )
 
 var (
@@ -59,14 +59,14 @@ func main() {
 		time.Sleep(time.Duration(flagReportInterval) * time.Second)
 		for i, v := range memory {
 			s := URLConstructor(protocolScheme, flagRunAddr, gaugeType, i, v) 
-			fmt.Println(s)
 			resp, err := MakeRequest(s, agent)
 			if err != nil {
 				panic(err)
 			}
 			fmt.Println(resp)
 		}
-		s := URLConstructor(protocolScheme, flagRunAddr, countType, PollCount, float64(count))   
+		s := URLConstructor(protocolScheme, flagRunAddr, countType, PollCount, float64(count)) 
+		fmt.Println(s)  
 		_, err := MakeRequest(s, agent)
 		if err != nil {
 			panic(err)
@@ -74,7 +74,6 @@ func main() {
 
 	}   
 }
-
 
 func UpdateMetrics() {
 	for {
