@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -130,7 +131,10 @@ func MetricRouter() chi.Router {
 
 
 func main() {	
-	http.ListenAndServe(":8080", MetricRouter())
+	parseFlags()
+
+	fmt.Println("Running server on", flagRunAddr)
+	http.ListenAndServe(flagRunAddr, MetricRouter())
 }
 
 func convertToSingleMap(a map[string]float64, b map[string]int64) map[string]interface{} {

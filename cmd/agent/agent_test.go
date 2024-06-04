@@ -48,7 +48,6 @@ func TestUrlConstructor(t *testing.T) {
 		{
 			name: "simple test",
 			urlParts: urlParts{
-				serverAddress: "http://localhost:8080",
 				metricType: "count",
 				metricName: "PollCount",
 				valueMetric: 5,
@@ -58,7 +57,7 @@ func TestUrlConstructor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, URLConstructor(tt.urlParts.serverAddress, tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
+			assert.Equal(t, tt.want, flagRunAddr + URLConstructor( protocolScheme, flagRunAddr,  tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
 		})
 	}
 }

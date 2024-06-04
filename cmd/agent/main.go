@@ -12,11 +12,10 @@ import (
 
 const (
     pollInterval   = 2
-    reportInterval = 10
-	serverAdress = "http://localhost:8080"
 	gaugeType = "gauge"
 	countType = "counter"
 	PollCount = "PollCount"
+	protocolScheme = "http://localhost"
 )
 
 var (
@@ -47,25 +46,27 @@ func MakeRequest(url string, agent *http.Client) (string, error) {
 
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 
-func URLConstructor(serverAddress string, metricType string, metricName string, metricValue interface{}) (string) {
-	return fmt.Sprint(serverAdress,"/update/",metricType,"/",metricName,"/", metricValue)
+func URLConstructor(protocolScheme string, flagRunAddr string, metricType string, metricName string, metricValue interface{}) (string) {
+	return fmt.Sprint(protocolScheme,flagRunAddr,"/update/",metricType,"/",metricName,"/", metricValue)
 }
 
 func main() {
+	parseFlags()
     // start goroutine to update metrics every pollInterval
 	go UpdateMetrics()   
 	agent := &http.Client{}
 	for {
-		time.Sleep(reportInterval * time.Second)
+		time.Sleep(time.Duration(flagReportInterval) * time.Second)
 		for i, v := range memory {
-			s := URLConstructor(serverAdress, gaugeType, i, v) 
+			s := URLConstructor(protocolScheme, flagRunAddr, gaugeType, i, v) 
+			fmt.Println(s)
 			resp, err := MakeRequest(s, agent)
 			if err != nil {
 				panic(err)
 			}
 			fmt.Println(resp)
 		}
-		s := URLConstructor(serverAdress, countType, PollCount, float64(count))   
+		s := URLConstructor(protocolScheme, flagRunAddr, countType, PollCount, float64(count))   
 		_, err := MakeRequest(s, agent)
 		if err != nil {
 			panic(err)
@@ -77,7 +78,7 @@ func main() {
 
 func UpdateMetrics() {
 	for {
-        time.Sleep(pollInterval * time.Second)
+        time.Sleep(time.Duration(flagPollInterval) * time.Second)
         runtime.ReadMemStats(&rtm)
 
 		memory["Alloc"] = float64(rtm.Alloc)
