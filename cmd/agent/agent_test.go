@@ -52,7 +52,7 @@ func TestUrlConstructor(t *testing.T) {
 				metricType: "count",
 				metricName: "PollCount",
 				valueMetric: 5,
-				host: ":8080",
+				host: "localhost:8080",
 			},
 			want: "http://localhost:8080/update/count/PollCount/5",
 		},
