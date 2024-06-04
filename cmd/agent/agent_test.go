@@ -39,6 +39,7 @@ func TestUrlConstructor(t *testing.T) {
 		metricType    string
 		metricName    string
 		valueMetric   float64
+		host 		  string
 	}
 	tests := []struct {
         name   string
@@ -51,13 +52,14 @@ func TestUrlConstructor(t *testing.T) {
 				metricType: "count",
 				metricName: "PollCount",
 				valueMetric: 5,
+				host: ":8080",
 			},
 			want: "http://localhost:8080/update/count/PollCount/5",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, flagRunAddr + URLConstructor( protocolScheme, flagRunAddr,  tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
+			assert.Equal(t, tt.want, URLConstructor( protocolScheme, tt.urlParts.host,  tt.urlParts.metricType, tt.urlParts.metricName, tt.urlParts.valueMetric))
 		})
 	}
 }
