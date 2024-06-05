@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"math/rand"
-	"net/http"
 	"runtime"
+	"strconv"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 const (
@@ -15,7 +15,8 @@ const (
 	gaugeType = "gauge"
 	countType = "counter"
 	PollCount = "PollCount"
-	protocolScheme = "http://"
+	StatusOK = 200
+	ProtocolScheme = "http://"
 )
 
 var (
@@ -24,54 +25,45 @@ var (
 	count = 0
 )
 
-func MakeRequest(url string, agent *http.Client) (string, error) {
-	req, err := http.NewRequest("POST", url, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	req.Header.Set("Content-Type", "text/plain")
-	resp, err := agent.Do(req)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-   	log.Println(string(body))
-	resp.Body.Close()
-
-	return string(body), err
+func SendMetric(requestURL, metricType, metricName, metricValue string, req *resty.Request) (*resty.Response, error) {
+	return req.Post(req.URL + "/update/{metricType}/{metricName}/{metricValue}")
 }
 
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
-
-func URLConstructor(protocolScheme string, flagRunAddr string, metricType string, metricName string, metricValue interface{}) (string) {
-	return fmt.Sprint(protocolScheme,flagRunAddr,"/update/",metricType,"/",metricName,"/", metricValue)
-}
 
 func main() {
 	parseFlags()
     // start goroutine to update metrics every pollInterval
 	go UpdateMetrics()   
-	agent := &http.Client{}
+	agent := resty.New()
 	for {
 		time.Sleep(time.Duration(flagReportInterval) * time.Second)
 		for i, v := range memory {
-			s := URLConstructor(protocolScheme, flagRunAddr, gaugeType, i, v) 
-			resp, err := MakeRequest(s, agent)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Println(resp)
+				req := agent.R()
+				req.SetPathParams(map[string]string{
+					"metricType": gaugeType,
+					"metricName": i,
+					"metricValue": strconv.FormatFloat(v, 'f', 6, 64 ),
+				}).SetHeader("Content-Type", "text/plain")
+				req.URL = ProtocolScheme + flagRunAddr
+				_, err := SendMetric(req.URL, gaugeType, i,  strconv.FormatFloat(v, 'f', 6, 64 ), req)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println("Metric has been sent successfully")
 		}
-		s := URLConstructor(protocolScheme, flagRunAddr, countType, PollCount, float64(count)) 
-		fmt.Println(s)  
-		_, err := MakeRequest(s, agent)
+		req := agent.R()
+		req.SetPathParams(map[string]string{
+			"metricType": countType,
+			"metricName": PollCount,
+			"metricValue": strconv.Itoa(count),
+		}).SetHeader("Content-Type", "text/plain")
+		req.URL = ProtocolScheme + flagRunAddr
+		_, err := SendMetric(req.URL, countType, PollCount,  strconv.Itoa(count), req)
 		if err != nil {
 			panic(err)
 		}
-
+		fmt.Println("Metric has been sent successfully")
 	}   
 }
 
