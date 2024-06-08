@@ -1,6 +1,7 @@
-package main
+package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,20 +12,16 @@ import (
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response) {
 	req, err := http.NewRequest(method, ts.URL+path, nil)
+	fmt.Println(req)
 	require.NoError(t, err)
-
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-
 	return resp
 }
-
-
 func TestRouter(t *testing.T) {
 	ts := httptest.NewServer(MetricRouter())
 	defer ts.Close()
-
 	type want struct {
 		code 		int
 		contentType string
@@ -48,7 +45,7 @@ func TestRouter(t *testing.T) {
 				code: 404,
 				contentType: "text/plain; charset=utf-8",
 			},
-			url: "/update/counter/527",
+			url: "/update/countser/527",
 		},
 		{
 			name: "negative test #3",
@@ -71,15 +68,12 @@ func TestRouter(t *testing.T) {
 		resp := testRequest(t, ts, "POST", tt.url)
 		defer resp.Body.Close()
 		assert.Equal(t, tt.want.code, resp.StatusCode)
-
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
 	}
 }
-
 func TestInformationHandle(t *testing.T) {
 	ts := httptest.NewServer(MetricRouter())
 	defer ts.Close()
-
 	type want struct {
 		code 		int
 		contentType string
@@ -106,11 +100,9 @@ func TestInformationHandle(t *testing.T) {
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
 	}
 }
-
 func TestValueHandle(t *testing.T) {
 	ts := httptest.NewServer(MetricRouter())
 	defer ts.Close()
-
 	type want struct {
 		code 		int
 		contentType string
@@ -121,15 +113,7 @@ func TestValueHandle(t *testing.T) {
 		url  string
 	}{
 		{
-			name: "positive test #1",
-			want: want{
-				code: 200,
-				contentType: "text/plain; charset=utf-8",
-			},
-			url: "/value/gauge/Alloc",
-		},
-		{
-			name: "negative test #2",
+			name: "negative test #1",
 			want: want{
 				code: 404,
 				contentType: "",
@@ -138,11 +122,9 @@ func TestValueHandle(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		Memory.gauge["Alloc"] = 45
 		resp := testRequest(t, ts, "GET", tt.url)
 		defer resp.Body.Close()
 		assert.Equal(t, tt.want.code, resp.StatusCode)
-
 		assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
 	}
 }

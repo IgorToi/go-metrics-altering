@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"net/http"
@@ -8,7 +8,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
-
 func TestSendMetric(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {}))
 	defer server.Close()
