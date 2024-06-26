@@ -1,8 +1,24 @@
 package server
 
+import (
+	"net/http"
+
+	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
+	"github.com/IgorToi/go-metrics-altering/internal/logger"
+	"go.uber.org/zap"
+)
+
 type MemStorage struct {
 	Gauge     map[string]float64
 	Counter   map[string]int64
+}
+
+func Run(cfg *config.ConfigServer) error {
+	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
+		return err
+	}
+	logger.Log.Info("Running server", zap.String("address", cfg.FlagRunAddr))
+	return http.ListenAndServe(cfg.FlagRunAddr, MetricRouter())
 }
 
 func InitStorage() (*MemStorage) {
