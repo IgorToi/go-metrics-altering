@@ -79,7 +79,8 @@ func MetricRouter() chi.Router {
 	r := chi.NewRouter()
 	
 	r.Post("/update/",	WithLogging(http.HandlerFunc(memory.UpdateHandler)))
-	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(http.HandlerFunc(memory.UpdateHandle)))
+
 	r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
 	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
 	r.Get("/", memory.InformationHandle)
