@@ -106,6 +106,9 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
         return
 	}
+	m.Counter  = make(map[string]int64)
+	m.Gauge = make(map[string]float64)
+
 	switch req.MType {
 	case agentConfig.GaugeType:
 	m.UpdateGaugeMetric(req.ID, *req.Value)

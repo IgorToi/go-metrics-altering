@@ -97,7 +97,9 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func TestValueHandler(t *testing.T) {
-	var m MemStorage 
+	m := new(MemStorage)
+	m.Counter  = make(map[string]int64)
+	m.Gauge = make(map[string]float64)
 	handler := http.HandlerFunc(m.ValueHandler)
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
