@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
@@ -78,8 +79,9 @@ func MetricRouter() chi.Router {
 	r := chi.NewRouter()
 	
 	r.Post("/update/",	WithLogging(http.HandlerFunc(memory.UpdateHandler)))
-	// r.Get("/value/{metricType}/{metricName}", memory.ValueHandle)
+	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
 	r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
+	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
 	r.Get("/", memory.InformationHandle)
 	return r
 }
@@ -167,67 +169,60 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Debug("sending HTTP 200 response")
 }
 
-
-
-
-
-
-
-
-
-// func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
-// 	metricType := chi.URLParam(r, "metricType")
-// 	metricName := chi.URLParam(r, "metricName")
-// 	if metricName ==  "" {
-// 		rw.WriteHeader(http.StatusNotFound)
-// 		return
-// 	}
-// 	metricValue := chi.URLParam(r, "metricValue")
-// 	switch metricType {
-// 	case agentConfig.GaugeType:
-// 		metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
-// 		if err != nil {
-// 			rw.WriteHeader(http.StatusBadRequest)
-// 			return
-// 		}
-// 		m.UpdateGaugeMetric(metricName, metricValueConverted)
-// 	case agentConfig.CountType:
-// 		metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
-// 		if err != nil {
-// 			rw.WriteHeader(http.StatusBadRequest)
-// 			return
-// 		}
-// 		m.UpdateCounterMetric(metricName, metricValueConverted)
-// 	default:
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-// 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-// }
-
-// func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
-// 	metricType := chi.URLParam(r, "metricType")
-// 	metricName := chi.URLParam(r, "metricName")
-// 	switch metricType {
-// 	case agentConfig.GaugeType:
-// 		if !m.CheckIfGaugeMetricPresent(metricName) {
-// 			rw.WriteHeader(http.StatusNotFound)
-// 			return
-// 		}
-// 		rw.Write([]byte(strconv.FormatFloat(m.GetGaugeMetricFromMemory(metricName),'f', -1, 64)))
-// 	case agentConfig.CountType:
-// 		if !m.CheckIfCountMetricPresent(metricName) {
-// 			rw.WriteHeader(http.StatusNotFound)
-// 			return
-// 		}
-// 		rw.Write([]byte(strconv.FormatInt(m.GetCountMetricFromMemory(metricName), 10)))
-// 	default:
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-// 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-// 	rw.WriteHeader(http.StatusOK)
-// }
+//without body
+func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	if metricName ==  "" {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+	metricValue := chi.URLParam(r, "metricValue")
+	switch metricType {
+	case agentConfig.GaugeType:
+		metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		m.UpdateGaugeMetric(metricName, metricValueConverted)
+	case agentConfig.CountType:
+		metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		m.UpdateCounterMetric(metricName, metricValueConverted)
+	default:
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+}
+//without body
+func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	switch metricType {
+	case agentConfig.GaugeType:
+		if !m.CheckIfGaugeMetricPresent(metricName) {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		}
+		rw.Write([]byte(strconv.FormatFloat(m.GetGaugeMetricFromMemory(metricName),'f', -1, 64)))
+	case agentConfig.CountType:
+		if !m.CheckIfCountMetricPresent(metricName) {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		}
+		rw.Write([]byte(strconv.FormatInt(m.GetCountMetricFromMemory(metricName), 10)))
+	default:
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	rw.WriteHeader(http.StatusOK)
+}
 
 func (m *MemStorage) InformationHandle(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "text/html; charset=utf-8")

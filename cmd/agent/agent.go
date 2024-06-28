@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -36,8 +35,7 @@ func main() {
 				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
 				return
 			}
-			logger.Log.Info("metric sent")
-			fmt.Println("!!!!")			
+			logger.Log.Info("metric sent")		
 		}
 		delta := int64(cfg.Count)
 		req := agent.R().SetBody(models.Metrics{
