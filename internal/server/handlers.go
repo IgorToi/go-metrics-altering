@@ -175,7 +175,6 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Log.Debug("sending HTTP 200 response")
 }
-
 //without body
 func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
 	metricType := chi.URLParam(r, "metricType")
