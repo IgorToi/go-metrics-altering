@@ -106,6 +106,12 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
         return
 	}
+	switch req.MType {
+	case agentConfig.GaugeType:
+	m.UpdateGaugeMetric(req.ID, *req.Value)
+	case agentConfig.PollCount:
+	m.UpdateCounterMetric(req.ID, *req.Delta)	
+	}
 	resp := models.Metrics{
 		ID: req.ID,
 		MType: req.MType,
