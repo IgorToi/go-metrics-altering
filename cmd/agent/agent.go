@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
-	agentHandlers "github.com/IgorToi/go-metrics-altering/internal/agent"
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
+	"github.com/IgorToi/go-metrics-altering/internal/logger"
+	"github.com/IgorToi/go-metrics-altering/internal/models"
 	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
 )
 
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
@@ -24,31 +25,33 @@ func main() {
 	for {
 		time.Sleep(durationPause)
 		for i, v := range cfg.Memory {
-			req := agent.R()
-			req.SetPathParams(map[string]string{
-				"metricType": agentConfig.GaugeType,
-				"metricName": i,
-				"metricValue": strconv.FormatFloat(v, 'f', 6, 64 ),
-			}).SetHeader("Content-Type", "text/plain")
+			req := agent.R().SetBody(models.Metrics{
+				ID:	i,
+				MType: agentConfig.GaugeType,
+				Value: &v,
+			}).SetHeader("Content-Type", "application/json")
 			req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-			_, err := agentHandlers.SendMetric(req.URL, agentConfig.GaugeType, i,  strconv.FormatFloat(v, 'f', 6, 64 ), req)
+			_, err := req.Post(req.URL + "/update/")
 			if err != nil {
-				fmt.Printf("unexpected sending metric error: %s", err)
+				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
+				return
 			}
-			fmt.Println("Metric has been sent successfully")
+			logger.Log.Info("metric sent")
+			fmt.Println("!!!!")			
 		}
-		req := agent.R()
-		req.SetPathParams(map[string]string{
-			"metricType": agentConfig.CountType,
-			"metricName": agentConfig.PollCount,
-			"metricValue": strconv.Itoa(cfg.Count),
-		}).SetHeader("Content-Type", "text/plain")
+		delta := int64(cfg.Count)
+		req := agent.R().SetBody(models.Metrics{
+			ID: agentConfig.PollCount,
+			MType: agentConfig.CountType,
+			Delta: &delta,
+		}).SetHeader("Content-Type", "application/json")
 		req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-		_, err := agentHandlers.SendMetric(req.URL, agentConfig.CountType, agentConfig.PollCount,  strconv.Itoa(cfg.Count), req)
+		_, err := req.Post(req.URL + "/update/")
 		if err != nil {
-			fmt.Printf("unexpected sending metric error: %s", err)
+			logger.Log.Debug("unexpected sending metric error", zap.Error(err))
+			return
 		}
-		fmt.Println("Metric has been sent successfully")
+		logger.Log.Info("metric sent")	
 	}   
 }
 
