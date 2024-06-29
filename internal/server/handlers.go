@@ -72,9 +72,9 @@ func ParseTemplate() *template.Template {
 	}
 	return t
 }
-
+var memory = InitStorage()
 func MetricRouter() chi.Router {
-	memory := InitStorage()
+	
 	t = ParseTemplate()
 	r := chi.NewRouter()
 	
