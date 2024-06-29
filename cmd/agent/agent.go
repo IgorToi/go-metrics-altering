@@ -17,7 +17,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second * 2)
     // start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()  
 	agent := resty.New()
@@ -34,7 +33,6 @@ func main() {
 			_, err := req.Post(req.URL + "/update/")
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
-				return
 			}
 			logger.Log.Info("metric sent")	
 		}
@@ -48,7 +46,6 @@ func main() {
 		_, err := req.Post(req.URL + "/update/")
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error", zap.Error(err))
-			return
 		}
 		logger.Log.Info("metric sent")	
 	}   
