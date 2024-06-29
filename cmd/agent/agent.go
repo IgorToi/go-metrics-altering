@@ -15,6 +15,7 @@ import (
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 func main() {
 	cfg, err := agentConfig.LoadConfig()
+	delta := int64(cfg.Count)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,12 +36,10 @@ func main() {
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
 			}
+			delta++
 			logger.Log.Info("metric sent")	
 		}
-
-
-
-		delta := int64(cfg.Count)
+		
 		req := agent.R().SetBody(models.Metrics{
 			ID: agentConfig.PollCount,
 			MType: agentConfig.CountType,
