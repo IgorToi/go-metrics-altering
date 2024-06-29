@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -36,6 +37,9 @@ func main() {
 			}
 			logger.Log.Info("metric sent")	
 		}
+
+
+
 		delta := int64(cfg.Count)
 		req := agent.R().SetBody(models.Metrics{
 			ID: agentConfig.PollCount,
@@ -48,6 +52,7 @@ func main() {
 			logger.Log.Debug("unexpected sending metric error", zap.Error(err))
 		}
 		logger.Log.Info("metric sent")	
+		fmt.Println(delta)
 	}   
 }
 

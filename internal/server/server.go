@@ -24,6 +24,7 @@ func Run(cfg *config.ConfigServer) error {
 func InitStorage() (*MemStorage) {
 	var m MemStorage
 	m.Counter  = make(map[string]int64)
+	m.Counter["PollCount"] = 0
 	m.Gauge = make(map[string]float64)
 	return &m
 }
