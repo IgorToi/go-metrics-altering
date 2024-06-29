@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -108,11 +109,16 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
         return
 	}
+
+
+
+
 	switch req.MType {
 	case agentConfig.GaugeType:
 	m.UpdateGaugeMetric(req.ID, *req.Value)
 	case agentConfig.PollCount:
-	m.UpdateCounterMetric(req.ID, *req.Delta)	
+	m.UpdateCounterMetric(agentConfig.PollCount, *req.Delta)	
+	fmt.Println(m.Counter[agentConfig.PollCount])
 	}
 	resp := models.Metrics{
 		ID: req.ID,
@@ -162,7 +168,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		// 	w.WriteHeader(http.StatusNotFound)
 		// 	return
 		// }
-		delta :=  m.GetCountMetricFromMemory(req.ID)
+		delta :=  m.Counter[agentConfig.PollCount]
 		resp.Delta = &delta
 	default:
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))

@@ -41,6 +41,7 @@ func (m *MemStorage) UpdateCounterMetric(metricName string, metricValue int64) {
 		m.Counter = make(map[string]int64)
 	}
 	m.Counter[metricName] += metricValue
+	
 }
 
 func (m *MemStorage) GetGaugeMetricFromMemory(metricName string) float64 {
