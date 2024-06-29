@@ -97,7 +97,7 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func TestValueHandler(t *testing.T) {
-	var m MemStorage 
+	m := InitStorage()
 	handler := http.HandlerFunc(m.ValueHandler)
 	srv := httptest.NewServer(handler)
 	defer srv.Close()

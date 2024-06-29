@@ -22,17 +22,23 @@ func Run(cfg *config.ConfigServer) error {
 }
 
 func InitStorage() (*MemStorage) {
-	m := new(MemStorage)
+	var m MemStorage
 	m.Counter  = make(map[string]int64)
 	m.Gauge = make(map[string]float64)
-	return m
+	return &m
 }
 
 func (m *MemStorage) UpdateGaugeMetric(metricName string, metricValue float64) {
+	if m.Gauge == nil {
+		m.Gauge = make(map[string]float64)
+	}
 	m.Gauge[metricName] = metricValue
 }
 
 func (m *MemStorage) UpdateCounterMetric(metricName string, metricValue int64) {
+	if m.Counter == nil {
+		m.Counter = make(map[string]int64)
+	}
 	m.Counter[metricName] += metricValue
 }
 
