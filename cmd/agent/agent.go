@@ -17,6 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(time.Second * 2)
     // start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()  
 	agent := resty.New()
