@@ -83,7 +83,7 @@ func MetricRouter() chi.Router {
 
 	r.Route("/", func(r chi.Router) {	
 		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(http.HandlerFunc(memory.UpdateHandle)))
-		r.Post("/update/",	WithLogging(http.HandlerFunc(memory.UpdateHandler)))
+		r.Post("/update/", http.HandlerFunc(memory.UpdateHandler) )
 		r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
 	})
 	return r
@@ -108,17 +108,12 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
         return
 	}
-
-
-
-
 	switch req.MType {
 	case agentConfig.GaugeType:
 	m.UpdateGaugeMetric(req.ID, *req.Value)
-	case agentConfig.PollCount:
+	case agentConfig.CountType:
 	m.Counter[agentConfig.PollCount] += *req.Delta
 	}
-
 	var delta int64
 	if m.Counter[agentConfig.PollCount] != 0 {
 		delta = m.Counter[agentConfig.PollCount]

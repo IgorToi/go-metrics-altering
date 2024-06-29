@@ -25,7 +25,7 @@ type ConfigAgent struct {
 	FlagPollInterval 	int
 	Rtm 				runtime.MemStats
 	Memory 				map[string]float64	
-	Count 				int
+	Count 				int64
 }
 
 func LoadConfig() (*ConfigAgent, error) {

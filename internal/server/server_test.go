@@ -31,6 +31,7 @@ func TestUpdateHandler(t *testing.T) {
 		"type":	"gauge",
 		"value": 	1
 	}`
+
 	testCases := []struct{
 		name			string
 		method			string

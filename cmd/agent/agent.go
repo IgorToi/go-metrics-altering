@@ -15,7 +15,6 @@ import (
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 func main() {
 	cfg, err := agentConfig.LoadConfig()
-	delta := int64(cfg.Count)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,22 +35,21 @@ func main() {
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
 			}
-			delta++
+			cfg.Count++
 			logger.Log.Info("metric sent")	
 		}
-		
 		req := agent.R().SetBody(models.Metrics{
 			ID: agentConfig.PollCount,
 			MType: agentConfig.CountType,
-			Delta: &delta,
+			Delta: &cfg.Count,
 		}).SetHeader("Content-Type", "application/json")
 		req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
 		_, err := req.Post(req.URL + "/update/")
+		fmt.Println(req.Body)
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error", zap.Error(err))
 		}
 		logger.Log.Info("metric sent")	
-		fmt.Println(delta)
 	}   
 }
 
