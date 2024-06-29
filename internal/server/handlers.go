@@ -118,19 +118,34 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case agentConfig.PollCount:
 	m.Counter[agentConfig.PollCount] += *req.Delta
 	}
-	delta := m.Counter[agentConfig.PollCount]
-	resp := models.Metrics{
-		ID: req.ID,
-		MType: req.MType,
-		Delta: &delta,
-		Value: req.Value,
+
+	var delta int64
+	if m.Counter[agentConfig.PollCount] != 0 {
+		delta = m.Counter[agentConfig.PollCount]
+		resp := models.Metrics{
+			ID: req.ID,
+			MType: req.MType,
+			Value: req.Value,
+			Delta: &delta,
+		}
+		enc := json.NewEncoder(w)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
+	} else {
+		resp := models.Metrics{
+			ID: req.ID,
+			MType: req.MType,
+			Value: req.Value,
+		}
+		enc := json.NewEncoder(w)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
-		logger.Log.Debug("error encoding response", zap.Error(err))
-		return
-	}
 	logger.Log.Debug("sending HTTP 200 response")
 }
 
