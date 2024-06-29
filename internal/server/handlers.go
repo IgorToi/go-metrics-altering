@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -117,13 +116,13 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case agentConfig.GaugeType:
 	m.UpdateGaugeMetric(req.ID, *req.Value)
 	case agentConfig.PollCount:
-	m.UpdateCounterMetric(agentConfig.PollCount, *req.Delta)	
-	fmt.Println(m.Counter[agentConfig.PollCount])
+	m.Counter[agentConfig.PollCount] += *req.Delta
 	}
+	delta := m.Counter[agentConfig.PollCount]
 	resp := models.Metrics{
 		ID: req.ID,
 		MType: req.MType,
-		Delta: req.Delta,
+		Delta: &delta,
 		Value: req.Value,
 	}
 	w.Header().Set("Content-Type", "application/json")
