@@ -157,11 +157,11 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		value := m.GetGaugeMetricFromMemory(req.ID)
 		resp.Value = &value
 	case agentConfig.CountType:
-		if !m.CheckIfCountMetricPresent(req.ID) {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+		// if !m.CheckIfCountMetricPresent(req.ID) {
+		// 	logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+		// 	w.WriteHeader(http.StatusNotFound)
+		// 	return
+		// }
 		delta :=  m.GetCountMetricFromMemory(req.ID)
 		resp.Delta = &delta
 	default:
