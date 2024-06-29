@@ -72,18 +72,20 @@ func ParseTemplate() *template.Template {
 	}
 	return t
 }
-var memory = InitStorage()
+
 func MetricRouter() chi.Router {
-	
+	var memory = InitStorage()
 	t = ParseTemplate()
 	r := chi.NewRouter()
 	
-	r.Post("/update/",	WithLogging(http.HandlerFunc(memory.UpdateHandler)))
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(http.HandlerFunc(memory.UpdateHandle)))
-
-	r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
 	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
 	r.Get("/", memory.InformationHandle)
+
+	r.Route("/", func(r chi.Router) {	
+		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(http.HandlerFunc(memory.UpdateHandle)))
+		r.Post("/update/",	WithLogging(http.HandlerFunc(memory.UpdateHandler)))
+		r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
+	})
 	return r
 }
 
