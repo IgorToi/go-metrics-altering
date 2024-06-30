@@ -1,7 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -21,33 +23,60 @@ func main() {
     // start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()  
 	agent := resty.New()
+
+	
 	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
 	for {
 		time.Sleep(durationPause)
 		for i, v := range cfg.Memory {
-			req := agent.R().SetBody(models.Metrics{
-				ID:	i,
+
+			requestBody := models.Metrics{
+				ID: i,
 				MType: agentConfig.GaugeType,
 				Value: &v,
-			}).SetHeader("Content-Type", "application/json")
-			req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-			_, err := req.Post(req.URL + "/update/")
+			}
+
+			var b bytes.Buffer
+			gw := gzip.NewWriter(&b)
+			err := json.NewEncoder(gw).Encode(requestBody)
 			if err != nil {
-				logger.Log.Debug("unexpected sending metric error", zap.Error(err))
+				logger.Log.Info("unexpected encoding body error",zap.Error(err))
+			}
+			gw.Close()
+
+			req := agent.R().SetBody(&b).SetHeader("Content-Type", "application/json")
+			req.SetHeader("Content-Encoding", "gzip")
+			req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
+			_, err = req.Post(req.URL + "/update/")
+
+			if err != nil {
+				logger.Log.Info("unexpected sending metric error", zap.Error(err))
 			}
 			cfg.Count++
 			logger.Log.Info("metric sent")	
 		}
-		req := agent.R().SetBody(models.Metrics{
+
+		requestBody := models.Metrics{
 			ID: agentConfig.PollCount,
 			MType: agentConfig.CountType,
 			Delta: &cfg.Count,
-		}).SetHeader("Content-Type", "application/json")
-		req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-		_, err := req.Post(req.URL + "/update/")
-		fmt.Println(req.Body)
+		}
+		var b bytes.Buffer
+		gw := gzip.NewWriter(&b)
+		err := json.NewEncoder(gw).Encode(requestBody)
 		if err != nil {
-			logger.Log.Debug("unexpected sending metric error", zap.Error(err))
+			logger.Log.Info("unexpected encoding body error",zap.Error(err))
+		}
+		gw.Close()
+		req := agent.R().SetBody(&b).SetHeader("Content-Type", "application/json")
+		req.SetHeader("Content-Encoding", "gzip")
+
+
+		req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
+		_, err = req.Post(req.URL + "/update/")
+
+		if err != nil {
+			logger.Log.Info("unexpected sending metric error", zap.Error(err))
 		}
 		logger.Log.Info("metric sent")	
 	}   

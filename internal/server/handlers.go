@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -78,18 +79,19 @@ func MetricRouter() chi.Router {
 	t = ParseTemplate()
 	r := chi.NewRouter()
 	
-	r.Get("/value/{metricType}/{metricName}", WithLogging(http.HandlerFunc(memory.ValueHandle)))
-	r.Get("/", memory.InformationHandle)
+	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(memory.ValueHandle))))
+	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.InformationHandle))))
 
 	r.Route("/", func(r chi.Router) {	
-		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(http.HandlerFunc(memory.UpdateHandle)))
-		r.Post("/update/", http.HandlerFunc(memory.UpdateHandler) )
-		r.Post("/value/", WithLogging(http.HandlerFunc(memory.ValueHandler)))
+		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(http.HandlerFunc(memory.UpdateHandle))))
+		r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.UpdateHandler))))
+		r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.ValueHandler))))
 	})
 	return r
 }
 
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("!!!")
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -103,6 +105,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	fmt.Println(req)
 	if req.MType != agentConfig.GaugeType && req.MType != agentConfig.CountType {
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -249,6 +252,7 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 
 func (m *MemStorage) InformationHandle(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.Header().Add("Content-Encoding","gzip")
 	
     if err := t.Execute(rw, ConvertToSingleMap(m.Gauge, m.Counter)); err != nil {
 		log.Printf("Failed to execute template: %v", err)
