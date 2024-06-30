@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -91,7 +90,6 @@ func MetricRouter() chi.Router {
 }
 
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("!!!")
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -105,7 +103,6 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(req)
 	if req.MType != agentConfig.GaugeType && req.MType != agentConfig.CountType {
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))
 		w.WriteHeader(http.StatusUnprocessableEntity)
