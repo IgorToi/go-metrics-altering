@@ -175,9 +175,19 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		value := m.GetGaugeMetricFromMemory(req.ID)
 		resp.Value = &value
 	case agentConfig.CountType:
-		if m.Counter == nil {
-			m.Counter = make(map[string]int64)
+		// if m.Counter == nil {
+		// 	m.Counter = make(map[string]int64)
+		// }
+		if !m.CheckIfCountMetricPresent(req.ID) {
+			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
+
+
+
+
+
 		delta :=  m.Counter[agentConfig.PollCount]
 		resp.Delta = &delta
 	default:
@@ -186,6 +196,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
         return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Encoding","gzip")
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
