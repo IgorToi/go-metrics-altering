@@ -175,15 +175,18 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		value := m.GetGaugeMetricFromMemory(req.ID)
 		resp.Value = &value
 	case agentConfig.CountType:
-		if m.Counter == nil {
-			m.Counter = make(map[string]int64)
-		}
-		if !m.CheckIfCountMetricPresent(req.ID) {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		delta :=  m.Counter[req.ID]
+		// if m.Counter == nil {
+		// 	m.Counter = make(map[string]int64)
+		// }
+		// if !m.CheckIfCountMetricPresent(req.ID) {
+		// 	logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+		// 	w.WriteHeader(http.StatusNotFound)
+		// 	return
+		// }
+		// delta :=  m.Counter[req.ID]
+		// resp.Delta = &delta
+
+		delta :=  m.Counter[agentConfig.PollCount]
 		resp.Delta = &delta
 	default:
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))
