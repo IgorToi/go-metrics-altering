@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -204,6 +205,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		ID:		req.ID,
 		MType: 	req.MType,
 	}
+	fmt.Println("!!!" + req.ID)
 	switch req.MType {
 	case agentConfig.GaugeType:
 		if !m.CheckIfGaugeMetricPresent(req.ID) {

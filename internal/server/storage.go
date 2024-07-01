@@ -20,6 +20,7 @@ type Metrics struct {
 	LastGC			float64
 	Lookups			float64
 	MCacheInuse		float64
+	MSpanSys 		float64
 	MCacheSys		float64
 	MSpanInuse		float64
 	Mallocs			float64
@@ -33,9 +34,29 @@ type Metrics struct {
 	Sys				float64
 	TotalAlloc		float64
 	RandomValue		float64
-	MSpanSys		float64
+
 	PollCount		int
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func (metrics Metrics) Save(fname string)  error {
 	data, err := json.MarshalIndent(metrics, "", "  ")
