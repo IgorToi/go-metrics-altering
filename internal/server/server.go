@@ -61,12 +61,23 @@ func (m *MemStorage) SaveMetrics(cfg *config.ConfigServer) {
 		metrics.Sys = float64(m.Gauge["StackSys"])
 		metrics.TotalAlloc = float64(m.Gauge["TotalAlloc"])
 		metrics.RandomValue = float64(m.Gauge["RandomValue"])
+		
+		
+
+
 
 		if err := metrics.Save(cfg.FlagStorePath); err != nil {
 			fmt.Println(err)
 			logger.Log.Debug("cannot save metrics to the file", zap.Error(err))
 		}
-		fmt.Println("???")
+
+		// file, err := os.OpenFile(cfg.FlagStorePath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+		// if errors.Is(err, os.ErrNotExist) {
+		// 	// handle the case where the file doesn't exist
+		// 	fmt.Println("ERROR")
+		// }
+		// file.Close()
+		
 	}
 }
 
