@@ -205,14 +205,15 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		ID:		req.ID,
 		MType: 	req.MType,
 	}
-	fmt.Println("!!!" + req.ID)
+	fmt.Println("!!!")
+	fmt.Println(req)
 	switch req.MType {
 	case agentConfig.GaugeType:
-		if !m.CheckIfGaugeMetricPresent(req.ID) {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+		// if !m.CheckIfGaugeMetricPresent(req.ID) {
+		// 	logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+		// 	w.WriteHeader(http.StatusNotFound)
+		// 	return
+		// }
 		value := m.GetGaugeMetricFromMemory(req.ID)
 		resp.Value = &value
 	case agentConfig.CountType:
@@ -231,6 +232,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Log.Debug("sending HTTP 200 response")
+	fmt.Println("finish")
 }
 //without body
 func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
