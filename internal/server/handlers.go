@@ -9,6 +9,7 @@ import (
 	"time"
 
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
+	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
 	"github.com/IgorToi/go-metrics-altering/internal/logger"
 	"github.com/IgorToi/go-metrics-altering/internal/models"
 	"github.com/IgorToi/go-metrics-altering/templates"
@@ -19,7 +20,7 @@ import (
 var t *template.Template
 
 type (
-	// info struct about reply
+	// info struct in regards to reply
 		responseData	struct {
 		status 		int
 		size		int
@@ -73,8 +74,49 @@ func ParseTemplate() *template.Template {
 	return t
 }
 
-func MetricRouter() chi.Router {
+func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	var memory = InitStorage()
+	var metrics Metrics
+	if cfg.FlagRestore == "true" {
+		metrics.Load(cfg.FlagStorePath)
+
+		memory.Counter["PollCount"] = int64(metrics.PollCount)
+		memory.Gauge["Alloc"] = float64(metrics.Alloc)
+		memory.Gauge["BuckHashSys"] = float64(metrics.BuckHashSys)
+		memory.Gauge["Frees"] = float64(metrics.Frees)
+		memory.Gauge["GCCPUFraction"] = float64(metrics.GCCPUFraction )
+		memory.Gauge["GCSys"] = float64(metrics.GCSys)
+		memory.Gauge["HeapAlloc"] = float64(metrics.HeapAlloc)
+		memory.Gauge["HeapIdle"] = float64(metrics.HeapIdle)
+		memory.Gauge["HeapInuse"] = float64(metrics.HeapInuse)
+		memory.Gauge["HeapObjects"] = float64(metrics.HeapObjects)
+		memory.Gauge["HeapReleased"] = float64(metrics.HeapReleased)
+		memory.Gauge["HeapSys"] = float64(metrics.HeapSys)
+		memory.Gauge["LastGC"] = float64(metrics.LastGC)
+		memory.Gauge["Lookups"] = float64(metrics.Lookups)
+		memory.Gauge["MCacheInuse"] = float64(metrics.MCacheInuse)
+		memory.Gauge["MCacheSys"] = float64(metrics.MCacheSys)
+		memory.Gauge["MSpanInuse"] = float64(metrics.MSpanInuse)
+		memory.Gauge["MSpanSys"] = float64(metrics.MSpanSys)
+		memory.Gauge["Mallocs"] = float64(metrics.Mallocs)
+		memory.Gauge["NextGC"] = float64(metrics.NextGC)
+		memory.Gauge["NumForcedGC"] = float64(metrics.NumForcedGC)
+		memory.Gauge["NumGC"] = float64(metrics.NumGC)
+		memory.Gauge["OtherSys"] = float64(metrics.OtherSys)
+		memory.Gauge["NextGC"] = float64(metrics.NextGC)
+		memory.Gauge["NumForcedGC"] = float64(metrics.NumForcedGC)
+		memory.Gauge["NumGC"] = float64(metrics.NumGC)
+		memory.Gauge["OtherSys"] = float64(metrics.OtherSys)
+		memory.Gauge["PauseTotalNs"] = float64(metrics.PauseTotalNs)
+		memory.Gauge["StackInuse"] = float64(metrics.StackInuse)
+		memory.Gauge["StackSys"] = float64(metrics.StackSys)
+		memory.Gauge["Sys"] = float64(metrics.StackSys)
+		memory.Gauge["TotalAlloc"] = float64(metrics.TotalAlloc)
+		memory.Gauge["RandomValue"] = float64(metrics.RandomValue)
+	}
+	// start goroutine to save metrics every pollInterval into file
+	go memory.SaveMetrics(cfg)
+
 	t = ParseTemplate()
 	r := chi.NewRouter()
 	

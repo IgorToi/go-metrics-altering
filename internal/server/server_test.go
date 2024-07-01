@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -164,7 +165,8 @@ func TestValueHandler(t *testing.T) {
 }
 
 func TestInformationHandle(t *testing.T) {
-	ts := httptest.NewServer(MetricRouter())
+	cfg, _ := config.LoadConfig()
+	ts := httptest.NewServer(MetricRouter(cfg))
 	defer ts.Close()
 	type want struct {
 		code 		int
