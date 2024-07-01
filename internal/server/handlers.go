@@ -80,7 +80,8 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	var metrics Metrics
 	if cfg.FlagRestore == "true" {
 		metrics.Load(cfg.FlagStorePath)
-
+		fmt.Println("????")
+		fmt.Println(memory.Counter)
 		memory.Counter["PollCount"] = int64(metrics.PollCount)
 		memory.Gauge["Alloc"] = float64(metrics.Alloc)
 		memory.Gauge["BuckHashSys"] = float64(metrics.BuckHashSys)
@@ -209,11 +210,11 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(req)
 	switch req.MType {
 	case agentConfig.GaugeType:
-		// if !m.CheckIfGaugeMetricPresent(req.ID) {
-		// 	logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
-		// 	w.WriteHeader(http.StatusNotFound)
-		// 	return
-		// }
+		if !m.CheckIfGaugeMetricPresent(req.ID) {
+			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		value := m.GetGaugeMetricFromMemory(req.ID)
 		resp.Value = &value
 	case agentConfig.CountType:
