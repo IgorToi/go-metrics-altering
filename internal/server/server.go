@@ -66,6 +66,7 @@ func (m *MemStorage) SaveMetrics(cfg *config.ConfigServer) {
 			fmt.Println(err)
 			logger.Log.Debug("cannot save metrics to the file", zap.Error(err))
 		}
+		fmt.Println("???")
 	}
 }
 
