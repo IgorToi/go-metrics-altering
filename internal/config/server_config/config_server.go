@@ -6,6 +6,12 @@ import (
 	"os"
 )
 
+const (
+	GaugeType = "gauge"
+	CountType = "counter"
+	PollCount = "PollCount"
+)
+
 type ConfigServer struct {
     FlagRunAddr         string
     Template            *template.Template

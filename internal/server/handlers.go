@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"text/template"
 
-	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
 	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
+
 	"github.com/IgorToi/go-metrics-altering/internal/logger"
 	"github.com/IgorToi/go-metrics-altering/internal/models"
 	"github.com/IgorToi/go-metrics-altering/templates"
@@ -47,7 +47,7 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
     })
     return r
 }
-//v2
+//v2 with requst body
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -62,47 +62,42 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusInternalServerError)
         return
     }
-    if req.MType != agentConfig.GaugeType && req.MType != agentConfig.CountType {
+    if req.MType != config.GaugeType && req.MType != config.CountType {
         logger.Log.Debug("usupported request type", zap.String("type", req.MType))
         w.WriteHeader(http.StatusUnprocessableEntity)
         return
     }
     switch req.MType {
-    case agentConfig.GaugeType:
+    case config.GaugeType:
     m.UpdateGaugeMetric(req.ID, *req.Value)
-    case agentConfig.CountType:
-    m.Counter[agentConfig.PollCount] += *req.Delta
+    case config.CountType:
+    m.Counter[config.PollCount] += *req.Delta
     }
-    var delta int64
-    if m.Counter[agentConfig.PollCount] != 0 {
-        delta = m.Counter[agentConfig.PollCount]
-        resp := models.Metrics{
+	var resp models.Metrics
+    delta := m.Counter[config.PollCount]
+	if delta == 0 {
+		resp = models.Metrics{
+            ID: req.ID,
+            MType: req.MType,
+            Value: req.Value,
+        }
+	} else {
+		resp = models.Metrics{
             ID: req.ID,
             MType: req.MType,
             Value: req.Value,
             Delta: &delta,
         }
-        enc := json.NewEncoder(w)
-        if err := enc.Encode(resp); err != nil {
-            logger.Log.Debug("error encoding response", zap.Error(err))
-            return
-        }
-    } else {
-        resp := models.Metrics{
-            ID: req.ID,
-            MType: req.MType,
-            Value: req.Value,
-        }
-        enc := json.NewEncoder(w)
-        if err := enc.Encode(resp); err != nil {
-            logger.Log.Debug("error encoding response", zap.Error(err))
-            return
-        }
+	}
+	enc := json.NewEncoder(w)
+    if err := enc.Encode(resp); err != nil {
+        logger.Log.Debug("error encoding response", zap.Error(err))
+        return
     }
     w.Header().Set("Content-Type", "application/json")
     logger.Log.Debug("sending HTTP 200 response")
 }
-//v2
+//v2 with requst body
 func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -122,7 +117,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
         MType:  req.MType,
     }
     switch req.MType {
-    case agentConfig.GaugeType:
+    case config.GaugeType:
         if !m.CheckIfGaugeMetricPresent(req.ID) {
             logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
             w.WriteHeader(http.StatusNotFound)
@@ -130,8 +125,8 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
         }
         value := m.GetGaugeMetricFromMemory(req.ID)
         resp.Value = &value
-    case agentConfig.CountType:
-        delta :=  m.Counter[agentConfig.PollCount]
+    case config.CountType:
+        delta :=  m.Counter[config.PollCount]
         resp.Delta = &delta
     default:
         logger.Log.Debug("usupported request type", zap.String("type", req.MType))
@@ -148,7 +143,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
     logger.Log.Debug("sending HTTP 200 response")
     fmt.Println("finish")
 }
-//v1
+//v1 
 func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
@@ -158,14 +153,14 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
     }
     metricValue := chi.URLParam(r, "metricValue")
     switch metricType {
-    case agentConfig.GaugeType:
+    case config.GaugeType:
         metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
         if err != nil {
             rw.WriteHeader(http.StatusBadRequest)
             return
         }
         m.UpdateGaugeMetric(metricName, metricValueConverted)
-    case agentConfig.CountType:
+    case config.CountType:
         metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
         if err != nil {
             rw.WriteHeader(http.StatusBadRequest)
@@ -183,13 +178,13 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
     switch metricType {
-    case agentConfig.GaugeType:
+    case config.GaugeType:
         if !m.CheckIfGaugeMetricPresent(metricName) {
             rw.WriteHeader(http.StatusNotFound)
             return
         }
         rw.Write([]byte(strconv.FormatFloat(m.GetGaugeMetricFromMemory(metricName),'f', -1, 64)))
-    case agentConfig.CountType:
+    case config.CountType:
         if !m.CheckIfCountMetricPresent(metricName) {
             rw.WriteHeader(http.StatusNotFound)
             return
@@ -206,7 +201,6 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 func (m *MemStorage) InformationHandle(rw http.ResponseWriter, r *http.Request) {
     rw.Header().Set("Content-Type", "text/html; charset=utf-8")
     rw.Header().Add("Content-Encoding","gzip")
-    
     if err := t.Execute(rw, ConvertToSingleMap(m.Gauge, m.Counter)); err != nil {
         log.Printf("Failed to execute template: %v", err)
     }
