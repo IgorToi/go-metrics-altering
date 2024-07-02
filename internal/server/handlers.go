@@ -80,7 +80,20 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 
 	if cfg.FlagRestore == "true" {
 		metrics.Load(cfg.FlagStorePath)
-		fmt.Println(metrics)
+		// fmt.Println(metrics)
+
+		json, err := json.Marshal(metrics)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(string(json))
+
+
+
+
+
+
 
 		memory.Counter["PollCount"] = int64(metrics.PollCount)
 		memory.Gauge["Alloc"] = float64(metrics.Alloc)

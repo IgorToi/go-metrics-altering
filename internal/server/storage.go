@@ -6,35 +6,35 @@ import (
 )
 
 type Metrics struct {
-	Alloc 			float64
-	BuckHashSys		float64
-	Frees			float64
-	GCCPUFraction	float64
-	GCSys			float64
-	HeapAlloc		float64
-	HeapIdle		float64
-	HeapInuse		float64
-	HeapObjects		float64
-	HeapReleased	float64
-	HeapSys			float64
-	LastGC			float64
-	Lookups			float64
-	MCacheInuse		float64
-	MSpanSys 		float64
-	MCacheSys		float64
-	MSpanInuse		float64
-	Mallocs			float64
-	NextGC			float64
-	NumForcedGC		float64
-	NumGC			float64
-	OtherSys		float64
-	PauseTotalNs	float64
-	StackInuse		float64
-	StackSys		float64
-	Sys				float64
-	TotalAlloc		float64
-	RandomValue		float64
-	PollCount		int
+	Alloc 			float64		`json:"Alloc"`
+	BuckHashSys		float64		`json:"BuckHashSys"`
+	Frees			float64		`json:"Frees"`
+	GCCPUFraction	float64		`json:"GCCPUFraction"`
+	GCSys			float64		`json:"GCSys"`
+	HeapAlloc		float64		`json:"HeapAlloc"`
+	HeapIdle		float64		`json:"HeapIdle"`
+	HeapInuse		float64		`json:"HeapInuse"`
+	HeapObjects		float64		`json:"HeapObjects"`
+	HeapReleased	float64		`json:"HeapReleased"`
+	HeapSys			float64		`json:"HeapSys"`
+	LastGC			float64		`json:"LastGC"`
+	Lookups			float64		`json:"Lookups"`
+	MCacheInuse		float64		`json:"MCacheInuse"`
+	MSpanSys 		float64		`json:"MSpanSys"`
+	MCacheSys		float64		`json:"MCacheSys"`
+	MSpanInuse		float64		`json:"MSpanInuse"`
+	Mallocs			float64		`json:"Mallocs"`
+	NextGC			float64		`json:"NextGC"`
+	NumForcedGC		float64		`json:"NumForcedGC"`
+	NumGC			float64		`json:"NumGC"`
+	OtherSys		float64		`json:"OtherSys"`
+	PauseTotalNs	float64		`json:"PauseTotalNs"`
+	StackInuse		float64		`json:"StackInuse"`
+	StackSys		float64		`json:"StackSys"`
+	Sys				float64		`json:"Sys"`
+	TotalAlloc		float64		`json:"TotalAlloc"`
+	RandomValue		float64		`json:"RandomValue"`
+	PollCount		int			`json:"PollCount"`
 }
 
 
