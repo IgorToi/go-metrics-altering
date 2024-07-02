@@ -34,28 +34,8 @@ type Metrics struct {
 	Sys				float64
 	TotalAlloc		float64
 	RandomValue		float64
-
 	PollCount		int
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 func (metrics Metrics) Save(fname string)  error {

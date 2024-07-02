@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
 	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
@@ -46,7 +45,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 // WithLogging adds code to regester info regarding request and returns new http.Handler
 func WithLogging(h http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		// start := time.Now()
 		responseData := &responseData{
 			status: 0,
 			size: 0,
@@ -56,14 +55,14 @@ func WithLogging(h http.Handler) http.HandlerFunc {
 			responseData: responseData,
 		}
 		h.ServeHTTP(&lw, r) //using updated http.ResponseWriter
-		duration := time.Since(start)
-		logger.Log.Info("got incoming HTTP request",
-			zap.String("uri", r.RequestURI),
-			zap.String("method", r.Method),
-			zap.Int("status", responseData.status),
-			zap.String("duration", duration.String()),
-			zap.Int("size", responseData.size),
-		)
+		// duration := time.Since(start)
+		// logger.Log.Info("got incoming HTTP request",
+		// 	zap.String("uri", r.RequestURI),
+		// 	zap.String("method", r.Method),
+		// 	zap.Int("status", responseData.status),
+		// 	zap.String("duration", duration.String()),
+		// 	zap.Int("size", responseData.size),
+		// )
 	})
 }	
 
@@ -78,10 +77,11 @@ func ParseTemplate() *template.Template {
 func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	var memory = InitStorage()
 	var metrics Metrics
+
 	if cfg.FlagRestore == "true" {
 		metrics.Load(cfg.FlagStorePath)
-		fmt.Println("????")
-		fmt.Println(memory.Counter)
+		fmt.Println(metrics)
+
 		memory.Counter["PollCount"] = int64(metrics.PollCount)
 		memory.Gauge["Alloc"] = float64(metrics.Alloc)
 		memory.Gauge["BuckHashSys"] = float64(metrics.BuckHashSys)
