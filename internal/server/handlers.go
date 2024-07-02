@@ -97,7 +97,7 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	return r
 }
 
-func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (memory *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -118,13 +118,13 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch req.MType {
 	case agentConfig.GaugeType:
-	m.UpdateGaugeMetric(req.ID, *req.Value)
+	memory.UpdateGaugeMetric(req.ID, *req.Value)
 	case agentConfig.CountType:
-	m.Counter[agentConfig.PollCount] += *req.Delta
+	memory.Counter[agentConfig.PollCount] += *req.Delta
 	}
 	var delta int64
-	if m.Counter[agentConfig.PollCount] != 0 {
-		delta = m.Counter[agentConfig.PollCount]
+	if memory.Counter[agentConfig.PollCount] != 0 {
+		delta = memory.Counter[agentConfig.PollCount]
 		resp := models.Metrics{
 			ID: req.ID,
 			MType: req.MType,

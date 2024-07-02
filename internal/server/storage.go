@@ -44,7 +44,7 @@ func Save(fname string, metricSlice []models.Metrics)  error {
 	return os.WriteFile(fname, data, 0606)
 }
 
-func (m *MemStorage) Load(fname string) error {
+func (memory *MemStorage) Load(fname string) error {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return err
@@ -57,9 +57,9 @@ func (m *MemStorage) Load(fname string) error {
 
 	for _, v := range metricSlice {
 		if v.MType == "gauge" {
-			m.Gauge[v.ID] = *v.Value
+			memory.Gauge[v.ID] = *v.Value
 		} else if v.MType == "counter" {
-			m.Counter[v.ID] = *v.Delta
+			memory.Counter[v.ID] = *v.Delta
 		}
 	}
 	return nil
