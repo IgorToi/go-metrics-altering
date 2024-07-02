@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -69,7 +68,6 @@ func (m *MemStorage) saveMetrics(cfg *config.ConfigServer) {
 
     interval, err  := strconv.Atoi(cfg.FlagStoreInterval)
     if err != nil {
-        fmt.Println(err)
         logger.Log.Debug("cannot decode time interval", zap.Error(err))
     }
     pauseDuration := time.Duration(interval) * time.Second

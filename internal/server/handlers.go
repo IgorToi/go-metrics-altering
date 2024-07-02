@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
+	"text/template"
 
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
 	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
@@ -19,37 +19,35 @@ import (
 
 var t *template.Template
 
-func ParseTemplate() *template.Template {
-    t, err := template.ParseFS(templates.FS, "home.gohtml")
-    if err != nil {
-        log.Fatal(err)
-    }
-    return t
-}
-
 func MetricRouter(cfg *config.ConfigServer) chi.Router {
     var m = InitStorage()
-
-    if cfg.FlagRestore == "true" {
+	restore, err :=  strconv.ParseBool(cfg.FlagRestore)
+	if err != nil {
+		logger.Log.Info("error parcing bool flag", zap.Error(err))
+	}
+	// if flag restore is trus - load metrics from file
+    if restore {
         m.Load(cfg.FlagStorePath)
     }
-    
+	// start goroutine to save metrics in file
     go m.saveMetrics(cfg)
-
-    t = ParseTemplate()
+	// parse template
+    t = templates.ParseTemplate()
     r := chi.NewRouter()
-    
+	// v1
     r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandle))))
     r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(m.InformationHandle))))
 
-    r.Route("/", func(r chi.Router) {   
+    r.Route("/", func(r chi.Router) {  
+		// v1 
         r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandle))))
+		// v2
         r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandler))))
         r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandler))))
     })
     return r
 }
-
+//v2
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -104,7 +102,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     logger.Log.Debug("sending HTTP 200 response")
 }
-
+//v2
 func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -150,7 +148,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
     logger.Log.Debug("sending HTTP 200 response")
     fmt.Println("finish")
 }
-//without body request
+//v1
 func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
@@ -180,7 +178,7 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
     }
     rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 }
-//without body request
+//v1
 func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
