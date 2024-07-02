@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
 	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
@@ -19,53 +18,6 @@ import (
 )
 
 var t *template.Template
-
-type (
-    // info struct in regards to reply
-        responseData    struct {
-        status      int
-        size        int
-    }
-    loggingResponseWriter   struct {
-        http.ResponseWriter
-        responseData    *responseData
-    }
-)
-
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-    size, err := r.ResponseWriter.Write(b)
-    r.responseData.size += size
-    return size, err
-}
-
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-    r.ResponseWriter.WriteHeader(statusCode)
-    r.responseData.status = statusCode
-}
-
-// WithLogging adds code to regester info regarding request and returns new http.Handler
-func WithLogging(h http.Handler) http.HandlerFunc {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        start := time.Now()
-        responseData := &responseData{
-            status: 0,
-            size: 0,
-        }
-        lw := loggingResponseWriter {
-            ResponseWriter: w,  //using original http.ResponseWriter
-            responseData: responseData,
-        }
-        h.ServeHTTP(&lw, r) //using updated http.ResponseWriter
-        duration := time.Since(start)
-        logger.Log.Info("got incoming HTTP request",
-         zap.String("uri", r.RequestURI),
-         zap.String("method", r.Method),
-         zap.Int("status", responseData.status),
-         zap.String("duration", duration.String()),
-         zap.Int("size", responseData.size),
-        )
-    })
-}   
 
 func ParseTemplate() *template.Template {
     t, err := template.ParseFS(templates.FS, "home.gohtml")
@@ -198,7 +150,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
     logger.Log.Debug("sending HTTP 200 response")
     fmt.Println("finish")
 }
-//without body
+//without body request
 func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) { 
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
@@ -228,7 +180,7 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
     }
     rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 }
-//without body
+//without body request
 func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
     metricType := chi.URLParam(r, "metricType")
     metricName := chi.URLParam(r, "metricName")
