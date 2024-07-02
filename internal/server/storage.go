@@ -2,58 +2,81 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"strconv"
+	"time"
+
+	config "github.com/IgorToi/go-metrics-altering/internal/config/server_config"
+	"github.com/IgorToi/go-metrics-altering/internal/logger"
+	"github.com/IgorToi/go-metrics-altering/internal/models"
+	"go.uber.org/zap"
 )
 
-type Metrics struct {
-	Alloc 			float64		`json:"Alloc"`
-	BuckHashSys		float64		`json:"BuckHashSys"`
-	Frees			float64		`json:"Frees"`
-	GCCPUFraction	float64		`json:"GCCPUFraction"`
-	GCSys			float64		`json:"GCSys"`
-	HeapAlloc		float64		`json:"HeapAlloc"`
-	HeapIdle		float64		`json:"HeapIdle"`
-	HeapInuse		float64		`json:"HeapInuse"`
-	HeapObjects		float64		`json:"HeapObjects"`
-	HeapReleased	float64		`json:"HeapReleased"`
-	HeapSys			float64		`json:"HeapSys"`
-	LastGC			float64		`json:"LastGC"`
-	Lookups			float64		`json:"Lookups"`
-	MCacheInuse		float64		`json:"MCacheInuse"`
-	MSpanSys 		float64		`json:"MSpanSys"`
-	MCacheSys		float64		`json:"MCacheSys"`
-	MSpanInuse		float64		`json:"MSpanInuse"`
-	Mallocs			float64		`json:"Mallocs"`
-	NextGC			float64		`json:"NextGC"`
-	NumForcedGC		float64		`json:"NumForcedGC"`
-	NumGC			float64		`json:"NumGC"`
-	OtherSys		float64		`json:"OtherSys"`
-	PauseTotalNs	float64		`json:"PauseTotalNs"`
-	StackInuse		float64		`json:"StackInuse"`
-	StackSys		float64		`json:"StackSys"`
-	Sys				float64		`json:"Sys"`
-	TotalAlloc		float64		`json:"TotalAlloc"`
-	RandomValue		float64		`json:"RandomValue"`
-	PollCount		int			`json:"PollCount"`
+// convert memStorage to slice of models.Metrics
+func (memory MemStorage) ConvertToSlice() []models.Metrics {
+	var metricSlice []models.Metrics
+	var model models.Metrics
+
+
+	for i, v := range  memory.Gauge {
+		model.ID = i
+		model.MType = "gauge"
+		model.Value = &v
+		metricSlice = append(metricSlice, model)
+	}
+
+
+	for j, u := range memory.Counter {
+		model.ID = j
+		model.MType = "counter"
+		model.Delta = &u
+		metricSlice = append(metricSlice, model)
+	}
+	return metricSlice
 }
 
-
-func (metrics Metrics) Save(fname string)  error {
-	data, err := json.MarshalIndent(metrics, "", "  ")
+func Save(fname string, metricSlice []models.Metrics)  error {
+	data, err := json.MarshalIndent(metricSlice, "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(fname, data, 0606)
 }
 
-func (metrics *Metrics) Load(fname string) error {
+func (m *MemStorage) Load(fname string) error {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(data, metrics); err != nil {
+
+	var metricSlice []models.Metrics
+	if err := json.Unmarshal(data, &metricSlice); err != nil {
 		return err
+	}
+
+	for _, v := range metricSlice {
+		if v.MType == "gauge" {
+			m.Gauge[v.ID] = *v.Value
+		} else if v.MType == "counter" {
+			m.Counter[v.ID] = *v.Delta
+		}
 	}
 	return nil
 }
 
+func (memory *MemStorage) saveMetrics(cfg *config.ConfigServer) {
+
+	interval, err  := strconv.Atoi(cfg.FlagStoreInterval)
+	if err != nil {
+		fmt.Println(err)
+		logger.Log.Debug("cannot decode time interval", zap.Error(err))
+	}
+	pauseDuration := time.Duration(interval) * time.Second
+	for {
+		time.Sleep(pauseDuration)
+		metricSlice := memory.ConvertToSlice()
+		Save(cfg.FlagStorePath, metricSlice)
+	}
+
+}
