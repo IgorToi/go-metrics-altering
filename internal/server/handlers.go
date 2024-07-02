@@ -75,29 +75,29 @@ func ParseTemplate() *template.Template {
 }
 
 func MetricRouter(cfg *config.ConfigServer) chi.Router {
-	var memory = InitStorage()
+	var m = InitStorage()
 
 	if cfg.FlagRestore == "true" {
-		memory.Load(cfg.FlagStorePath)
+		m.Load(cfg.FlagStorePath)
 	}
 	
-	go memory.saveMetrics(cfg)
+	go m.saveMetrics(cfg)
 
 	t = ParseTemplate()
 	r := chi.NewRouter()
 	
-	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(memory.ValueHandle))))
-	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.InformationHandle))))
+	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandle))))
+	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(m.InformationHandle))))
 
 	r.Route("/", func(r chi.Router) {	
-		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(http.HandlerFunc(memory.UpdateHandle))))
-		r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.UpdateHandler))))
-		r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(memory.ValueHandler))))
+		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandle))))
+		r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandler))))
+		r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandler))))
 	})
 	return r
 }
 
-func (memory *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -118,13 +118,13 @@ func (memory *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	switch req.MType {
 	case agentConfig.GaugeType:
-	memory.UpdateGaugeMetric(req.ID, *req.Value)
+	m.UpdateGaugeMetric(req.ID, *req.Value)
 	case agentConfig.CountType:
-	memory.Counter[agentConfig.PollCount] += *req.Delta
+	m.Counter[agentConfig.PollCount] += *req.Delta
 	}
 	var delta int64
-	if memory.Counter[agentConfig.PollCount] != 0 {
-		delta = memory.Counter[agentConfig.PollCount]
+	if m.Counter[agentConfig.PollCount] != 0 {
+		delta = m.Counter[agentConfig.PollCount]
 		resp := models.Metrics{
 			ID: req.ID,
 			MType: req.MType,

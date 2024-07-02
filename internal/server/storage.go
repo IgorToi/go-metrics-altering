@@ -14,12 +14,12 @@ import (
 )
 
 // convert memStorage to slice of models.Metrics
-func (memory MemStorage) ConvertToSlice() []models.Metrics {
+func (m MemStorage) ConvertToSlice() []models.Metrics {
 	var metricSlice []models.Metrics
 	var model models.Metrics
 
 
-	for i, v := range  memory.Gauge {
+	for i, v := range  m.Gauge {
 		model.ID = i
 		model.MType = "gauge"
 		model.Value = &v
@@ -27,7 +27,7 @@ func (memory MemStorage) ConvertToSlice() []models.Metrics {
 	}
 
 
-	for j, u := range memory.Counter {
+	for j, u := range m.Counter {
 		model.ID = j
 		model.MType = "counter"
 		model.Delta = &u
@@ -44,7 +44,7 @@ func Save(fname string, metricSlice []models.Metrics)  error {
 	return os.WriteFile(fname, data, 0606)
 }
 
-func (memory *MemStorage) Load(fname string) error {
+func (m *MemStorage) Load(fname string) error {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return err
@@ -57,15 +57,15 @@ func (memory *MemStorage) Load(fname string) error {
 
 	for _, v := range metricSlice {
 		if v.MType == "gauge" {
-			memory.Gauge[v.ID] = *v.Value
+			m.Gauge[v.ID] = *v.Value
 		} else if v.MType == "counter" {
-			memory.Counter[v.ID] = *v.Delta
+			m.Counter[v.ID] = *v.Delta
 		}
 	}
 	return nil
 }
 
-func (memory *MemStorage) saveMetrics(cfg *config.ConfigServer) {
+func (m *MemStorage) saveMetrics(cfg *config.ConfigServer) {
 
 	interval, err  := strconv.Atoi(cfg.FlagStoreInterval)
 	if err != nil {
@@ -75,7 +75,7 @@ func (memory *MemStorage) saveMetrics(cfg *config.ConfigServer) {
 	pauseDuration := time.Duration(interval) * time.Second
 	for {
 		time.Sleep(pauseDuration)
-		metricSlice := memory.ConvertToSlice()
+		metricSlice := m.ConvertToSlice()
 		Save(cfg.FlagStorePath, metricSlice)
 	}
 
