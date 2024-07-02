@@ -15,6 +15,6 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("Running server on", cfg.FlagRunAddr)
-	http.ListenAndServe(cfg.FlagRunAddr, httpServer.MetricRouter())
+	http.ListenAndServe(cfg.FlagRunAddr, httpServer.MetricRouter(cfg))
 }
 
