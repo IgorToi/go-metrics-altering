@@ -62,7 +62,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:         "method_post_without_body",
 			method:       http.MethodPost,
-			expectedCode: http.StatusInternalServerError,
+			expectedCode: http.StatusBadRequest,
 			expectedBody: "",
 		},
 		{
