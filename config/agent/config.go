@@ -2,53 +2,55 @@ package config
 
 import (
 	"flag"
-	"log"
 	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"go.uber.org/zap"
 )
 
 const (
-    PollInterval   = 2
-	GaugeType = "gauge"
-	CountType = "counter"
-	PollCount = "PollCount"
-	StatusOK = 200
+	PollInterval   = 2
+	GaugeType      = "gauge"
+	CountType      = "counter"
+	PollCount      = "PollCount"
+	StatusOK       = 200
 	ProtocolScheme = "http://"
 )
 
 type ConfigAgent struct {
-	FlagRunAddr 		string
-	FlagReportInterval 	int
-	FlagPollInterval 	int
-	Rtm 				runtime.MemStats
-	Memory 				map[string]float64	
-	Count 				int
+	FlagRunAddr        string
+	FlagReportInterval int
+	FlagPollInterval   int
+	Rtm                runtime.MemStats
+	Memory             map[string]float64
+	Count              int
 }
 
 func LoadConfig() (*ConfigAgent, error) {
 	cfg := new(ConfigAgent)
 	cfg.Memory = make(map[string]float64)
 	var err error
-	flag.StringVar(&cfg.FlagRunAddr , "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent to the server")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-        cfg.FlagRunAddr = envRunAddr
+		cfg.FlagRunAddr = envRunAddr
 	}
 	if envRoportInterval := os.Getenv("REPORT_INTERVAL"); envRoportInterval != "" {
-        cfg.FlagReportInterval, err = strconv.Atoi(envRoportInterval) 
+		cfg.FlagReportInterval, err = strconv.Atoi(envRoportInterval)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log.Fatal("error while parsing report interval", zap.Error(err))
 		}
 	}
 	if envPollInterval := os.Getenv("POLL_INTERVAL"); envPollInterval != "" {
-        cfg.FlagPollInterval, err = strconv.Atoi(envPollInterval) 
+		cfg.FlagPollInterval, err = strconv.Atoi(envPollInterval)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log.Fatal("error while parsing poll interval", zap.Error(err))
 		}
 	}
 	return cfg, err
@@ -57,12 +59,12 @@ func LoadConfig() (*ConfigAgent, error) {
 func (c *ConfigAgent) UpdateMetrics() {
 	PauseDuration := time.Duration(c.FlagPollInterval) * time.Second
 	for {
-        time.Sleep(PauseDuration)
-        runtime.ReadMemStats(&c.Rtm)
+		time.Sleep(PauseDuration)
+		runtime.ReadMemStats(&c.Rtm)
 		c.Memory["Alloc"] = float64(c.Rtm.Alloc)
 		c.Memory["BuckHashSys"] = float64(c.Rtm.BuckHashSys)
 		c.Memory["Frees"] = float64(c.Rtm.Frees)
-		c.Memory["GCCPUFraction"] = float64(c.Rtm.GCCPUFraction )
+		c.Memory["GCCPUFraction"] = float64(c.Rtm.GCCPUFraction)
 		c.Memory["GCSys"] = float64(c.Rtm.GCSys)
 		c.Memory["HeapAlloc"] = float64(c.Rtm.HeapAlloc)
 		c.Memory["HeapIdle"] = float64(c.Rtm.HeapIdle)
@@ -92,5 +94,5 @@ func (c *ConfigAgent) UpdateMetrics() {
 		c.Memory["TotalAlloc"] = float64(c.Rtm.TotalAlloc)
 		c.Memory["RandomValue"] = rand.Float64()
 		c.Count++
-    }
+	}
 }

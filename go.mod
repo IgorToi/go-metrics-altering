@@ -1,4 +1,4 @@
-module github.com/IgorToi/go-metrics-altering
+module github.com/igortoigildin/go-metrics-altering
 
 go 1.22.2
 
