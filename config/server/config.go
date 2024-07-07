@@ -59,17 +59,14 @@ func LoadConfig() (*ConfigServer, error) {
 	}
 	// check if any config variables is empty
 	var cfgVarEmpty = errors.New("configs variable not set")
-	if !configValid(cfg) {
+	if !cfg.validate() {
 		return nil, cfgVarEmpty
 	}
 	return cfg, err
 }
 
-func configValid(cfg *ConfigServer) bool {
+func (cfg *ConfigServer) validate() bool {
 	if cfg.FlagRunAddr == "" {
-		return false
-	}
-	if cfg.Template == nil {
 		return false
 	}
 	if cfg.FlagLogLevel == "" {
