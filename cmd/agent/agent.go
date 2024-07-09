@@ -1,24 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"strconv"
 	"time"
 
-	agentHandlers "github.com/IgorToi/go-metrics-altering/internal/agent"
-	agentConfig "github.com/IgorToi/go-metrics-altering/internal/config/agent_config"
 	"github.com/go-resty/resty/v2"
+	config "github.com/igortoigildin/go-metrics-altering/config/agent"
+	httpAgent "github.com/igortoigildin/go-metrics-altering/internal/agent"
+	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"go.uber.org/zap"
 )
 
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 func main() {
-	cfg, err := agentConfig.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal("error while logading config", zap.Error(err))
 	}
-    // start goroutine to update metrics every pollInterval
-	go cfg.UpdateMetrics()  
+	// start goroutine to update metrics every pollInterval
+	go cfg.UpdateMetrics()
 	agent := resty.New()
 	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
 	for {
@@ -26,29 +26,28 @@ func main() {
 		for i, v := range cfg.Memory {
 			req := agent.R()
 			req.SetPathParams(map[string]string{
-				"metricType": agentConfig.GaugeType,
-				"metricName": i,
-				"metricValue": strconv.FormatFloat(v, 'f', 6, 64 ),
+				"metricType":  config.GaugeType,
+				"metricName":  i,
+				"metricValue": strconv.FormatFloat(v, 'f', 6, 64),
 			}).SetHeader("Content-Type", "text/plain")
-			req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-			_, err := agentHandlers.SendMetric(req.URL, agentConfig.GaugeType, i,  strconv.FormatFloat(v, 'f', 6, 64 ), req)
+			req.URL = config.ProtocolScheme + cfg.FlagRunAddr
+			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
-				fmt.Printf("unexpected sending metric error: %s", err)
+				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
-			fmt.Println("Metric has been sent successfully")
+			logger.Log.Info("Metric has been sent successfully")
 		}
 		req := agent.R()
 		req.SetPathParams(map[string]string{
-			"metricType": agentConfig.CountType,
-			"metricName": agentConfig.PollCount,
+			"metricType":  config.CountType,
+			"metricName":  config.PollCount,
 			"metricValue": strconv.Itoa(cfg.Count),
 		}).SetHeader("Content-Type", "text/plain")
-		req.URL = agentConfig.ProtocolScheme + cfg.FlagRunAddr
-		_, err := agentHandlers.SendMetric(req.URL, agentConfig.CountType, agentConfig.PollCount,  strconv.Itoa(cfg.Count), req)
+		req.URL = config.ProtocolScheme + cfg.FlagRunAddr
+		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
-			fmt.Printf("unexpected sending metric error: %s", err)
+			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
-		fmt.Println("Metric has been sent successfully")
-	}   
+		logger.Log.Info("Metric has been sent successfully")
+	}
 }
-
