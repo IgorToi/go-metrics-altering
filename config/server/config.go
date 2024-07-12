@@ -21,6 +21,7 @@ type ConfigServer struct {
 	FlagStoreInterval int
 	FlagStorePath     string
 	FlagRestore       bool
+	FlagDbDSN		  string	
 }
 
 func LoadConfig() (*ConfigServer, error) {
@@ -31,6 +32,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
 	flag.BoolVar(&cfg.FlagRestore, "r", true, "true if load from backup is needed")
+	flag.StringVar(&cfg.FlagDbDSN, "d", "host=localhost user=postgres password=Igor109112 dbname=mydb sslmode=disable", "string with DB DSN")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
@@ -48,6 +50,9 @@ func LoadConfig() (*ConfigServer, error) {
 	}
 	if envStorePath := os.Getenv("FILE_STORAGE_PATH"); envStorePath != "" {
 		cfg.FlagStorePath = envStorePath
+	}
+	if envDBDSN := os.Getenv("DATABASE_DSN"); envDBDSN != "" {
+		cfg.FlagDbDSN = envDBDSN
 	}
 	if envFlagRestore := os.Getenv("RESTORE"); envFlagRestore != "" {
 		// parse bool env variable
