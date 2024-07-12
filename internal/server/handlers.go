@@ -30,13 +30,12 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func InitPostgresDB(cfg *config.ConfigServer) *Repository {
-	dbDSN := cfg.FlagDbDSN
+	dbDSN := cfg.FlagDBDSN
 	db, err := sql.Open("pgx", dbDSN)
 	if err != nil {
 		fmt.Println(err)
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
 	}
-	defer db.Close()
 	rep := NewRepository(db)
 	return rep
 }
@@ -81,6 +80,7 @@ func (rep *Repository) ping(w http.ResponseWriter, r *http.Request ) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
     }
+	rep.db.Close()
 	w.WriteHeader(http.StatusOK)
 }
 
