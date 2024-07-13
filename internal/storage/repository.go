@@ -38,12 +38,12 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	if err = db.PingContext(ctx); err != nil {
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
 	}
-	_, err = db.ExecContext(ctx, "CREATE TABLE counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL," +
+	_, err = db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL," +
 	"type TEXT NOT NULL, value int);")
 	if err != nil {
 		logger.Log.Fatal("error while creating counters table", zap.Error(err))
 	}
-	_, err = db.ExecContext(ctx, "CREATE TABLE gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL," +
+	_, err = db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL," +
 	"type TEXT NOT NULL, value DOUBLE PRECISION);")
 	if err != nil {
 		logger.Log.Fatal("error while creating gauges table", zap.Error(err))
