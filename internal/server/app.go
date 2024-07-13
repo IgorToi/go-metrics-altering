@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -70,6 +71,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+	fmt.Println("REQUEST", req)
 	
 	switch req.MType {
 	case config.GaugeType:
@@ -105,7 +107,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
+	fmt.Println("RESPONSE", req)
 	resp := models.Metrics{
 		ID:    req.ID,
 		MType: req.MType,
