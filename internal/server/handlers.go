@@ -1,9 +1,7 @@
 package server
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -19,27 +17,6 @@ import (
 
 var t *template.Template
 
-type Repository struct {
-	db 	*sql.DB
-}
-
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{
-		db: db,
-	}
-}
-
-func InitPostgresDB(cfg *config.ConfigServer) *Repository {
-	dbDSN := cfg.FlagDBDSN
-	db, err := sql.Open("pgx", dbDSN)
-	if err != nil {
-		fmt.Println(err)
-		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
-	}
-	rep := NewRepository(db)
-	return rep
-}
-
 func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	var m = InitStorage()
 	// if flag restore is true - load metrics from the local file
@@ -54,9 +31,6 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	// parse template
 	t = templates.ParseTemplate()
 	r := chi.NewRouter()
-	
-	rep := InitPostgresDB(cfg)
-	r.Get("/ping", rep.ping)
 
 	// v1
 	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandle))))
@@ -72,17 +46,16 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	return r
 }
 
-func (rep *Repository) ping(w http.ResponseWriter, r *http.Request ) {
-	ctx := r.Context()
-	if err := rep.db.PingContext(ctx); err != nil {
-		fmt.Println(err)
-        logger.Log.Info("error", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-    }
-	rep.db.Close()
-	w.WriteHeader(http.StatusOK)
-}
+// func (rep *Repository) ping(w http.ResponseWriter, r *http.Request ) {
+// 	ctx := r.Context()
+// 	if err := rep.db.PingContext(ctx); err != nil {
+//         logger.Log.Info("error", zap.Error(err))
+// 		w.WriteHeader(http.StatusInternalServerError)
+// 		return
+//     }
+// 	rep.db.Close()
+// 	w.WriteHeader(http.StatusOK)
+// }
 
 // v2 with requst body
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +83,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case config.CountType:
 		m.Counter[config.PollCount] += *req.Delta
 	}
+
 	var resp models.Metrics
 	delta := m.Counter[config.PollCount]
 	if delta == 0 {

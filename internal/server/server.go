@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
@@ -13,12 +14,28 @@ type MemStorage struct {
 	Counter map[string]int64
 }
 
-func Run(cfg *config.ConfigServer) error {
+func RunServer() {
+	ctx := context.Background()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		logger.Log.Fatal("error while logading config", zap.Error(err))
+	}
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		return err
+		logger.Log.Fatal("error while initializing logger", zap.Error(err))
 	}
 	logger.Log.Info("Running server", zap.String("address", cfg.FlagRunAddr))
-	return http.ListenAndServe(cfg.FlagRunAddr, MetricRouter(cfg))
+	switch cfg.FlagDBDSN {
+	case "":
+		http.ListenAndServe(cfg.FlagRunAddr, MetricRouter(cfg))
+		if err != nil {
+			logger.Log.Fatal("cannot start the server", zap.Error(err))
+		}
+	default:
+		http.ListenAndServe(cfg.FlagRunAddr, routerDB(ctx, cfg))
+		if err != nil {
+			logger.Log.Fatal("cannot start the server", zap.Error(err))
+		}
+	}
 }
 
 func InitStorage() *MemStorage {
