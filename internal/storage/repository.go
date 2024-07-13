@@ -56,7 +56,7 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 	switch metricType {
 	case GaugeType:
 		var check bool
-		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = metricName)").Scan(&check)
+		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = $1)", metricName).Scan(&check)
 		switch {
 		case err == sql.ErrNoRows:
 			return false
@@ -68,7 +68,7 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 		}
 	case CountType:
 		var check bool
-		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = metricName)").Scan(&check)
+		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = $1)", metricName).Scan(&check)
 		switch {
 		case err == sql.ErrNoRows:
 			return false
