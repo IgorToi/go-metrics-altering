@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
@@ -59,6 +60,7 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = $1)", metricName).Scan(&check)
 		switch {
 		case err == sql.ErrNoRows:
+			fmt.Println("NOT EXIST " + metricName )
 			return false
 		case err != nil:
 			logger.Log.Fatal("query error:", zap.Error(err))
@@ -71,6 +73,7 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = $1)", metricName).Scan(&check)
 		switch {
 		case err == sql.ErrNoRows:
+			fmt.Println("NOT EXIST " + metricName )
 			return false
 		case err != nil:
 			logger.Log.Fatal("query error:", zap.Error(err))
@@ -85,16 +88,30 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 func (rep *Repository) Add(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	switch metricType {
 	case GaugeType:
-		_, err := rep.DB.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue)
+		result, err := rep.DB.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue)
 		if err != nil {
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
 			return err
 		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
+		}
+		if rows != 1 {
+			log.Fatalf("expected to affect (ADD) 1 row, affected %d", rows)
+		}
 	case CountType:
-		_, err := rep.DB.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
+		result, err := rep.DB.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
+		}
+		if rows != 1 {
+			log.Fatalf("expected to affect (ADD) 1 row, affected %d", rows)
 		}
 	}
 	return nil
@@ -103,16 +120,31 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 func (rep *Repository) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	switch metricType {
 	case GaugeType:
-		_, err := rep.DB.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
+		result, err := rep.DB.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
+		if err != nil {
+			logger.Log.Fatal("error while updating counter metric to the db", zap.Error(err))
+			return err
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			logger.Log.Fatal("error while updating counter metric to the db", zap.Error(err))
+		}
+		if rows != 1 {
+			log.Fatalf("expected to affect (UPDATE) 1 row, affected %d", rows)
+		}
+
+	case CountType:
+		result, err := rep.DB.ExecContext(ctx, "UPDATE counters SET value = $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
 		}
-	case CountType:
-		_, err := rep.DB.ExecContext(ctx, "UPDATE counters SET value = $1 WHERE name = $2", metricValue, metricName)
+		rows, err := result.RowsAffected()
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
+		}
+		if rows != 1 {
+			log.Fatalf("expected to affect (UPDATE) 1 row, affected %d", rows)
 		}
 	}
 	return nil
