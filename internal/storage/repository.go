@@ -56,30 +56,22 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 func (rep *Repository) Exist(ctx context.Context, metricType string, metricName string) (bool) {
 	switch metricType {
 	case GaugeType:
-		var check bool
-		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT type FROM gauges WHERE name = $1)", metricName).Scan(&check)
-
-		switch {
-		case err == sql.ErrNoRows:
-			fmt.Println("NOT EXIST " + metricName )
-			return false
-		case err != nil:
-			logger.Log.Fatal("query error:", zap.Error(err))
-			return false
-		default:
+		var exists bool
+		row := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = $1)", metricName)
+		if err := row.Scan(&exists); err != nil {
+			logger.Log.Fatal("error while checking existence", zap.Error(err))
+		}
+		if exists {
 			return true
 		}
+
 	case CountType:
-		var check bool
-		err := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT type FROM counters WHERE name = $1)", metricName).Scan(&check)
-		switch {
-		case err == sql.ErrNoRows:
-			fmt.Println("NOT EXIST " + metricName )
-			return false
-		case err != nil:
-			logger.Log.Fatal("query error:", zap.Error(err))
-			return false
-		default:
+		var exists bool
+		row := rep.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = $1)", metricName)
+		if err := row.Scan(&exists); err != nil {
+			logger.Log.Fatal("error while checking existence", zap.Error(err))
+		}
+		if exists {
 			return true
 		}
 	}

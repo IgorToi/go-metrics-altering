@@ -90,6 +90,10 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+
+
+	
 	case config.CountType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
 			err := app.storage.Update(ctx, req.MType, req.ID, req.Value)

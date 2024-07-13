@@ -46,17 +46,6 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	return r
 }
 
-// func (rep *Repository) ping(w http.ResponseWriter, r *http.Request ) {
-// 	ctx := r.Context()
-// 	if err := rep.db.PingContext(ctx); err != nil {
-//         logger.Log.Info("error", zap.Error(err))
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		return
-//     }
-// 	rep.db.Close()
-// 	w.WriteHeader(http.StatusOK)
-// }
-
 // v2 with requst body
 func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
