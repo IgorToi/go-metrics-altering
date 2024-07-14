@@ -108,8 +108,16 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 			return err
 		}
 	case CountType:
-		fmt.Println("UPDATE ----", metricName, metricValue )
-		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = $1 WHERE name = $2", metricValue, metricName)
+		// fmt.Println("UPDATE ----", metricName, metricValue )
+		// metric, err := rep.Get(ctx, metricType, metricName) 
+		// if err != nil {
+		// 	logger.Log.Fatal("error while obtaining current counter metric", zap.Error(err))
+		// 	return err
+		// }
+		// cur
+
+
+		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
