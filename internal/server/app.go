@@ -51,7 +51,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	fmt.Println(metrics)
+	// fmt.Println(metrics)
 	for _, metric := range metrics {
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
 			logger.Log.Debug("usupported request type", zap.String("type", metric.MType))
@@ -77,14 +77,14 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 			}
 		case config.CountType:
 			if app.storage.Exist(ctx, metric.MType, metric.ID) {
-				err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Value)
+				err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Delta)
 				if err != nil {
 					logger.Log.Debug("error while updating value", zap.Error(err))
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 			} else {
-				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Value)
+				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Delta)
 				if err != nil {
 					logger.Log.Debug("error while adding value", zap.Error(err))
 					w.WriteHeader(http.StatusInternalServerError)
