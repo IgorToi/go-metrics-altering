@@ -51,6 +51,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	fmt.Println(metrics)
 	for _, metric := range metrics {
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
 			logger.Log.Debug("usupported request type", zap.String("type", metric.MType))
@@ -117,6 +118,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+	fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
