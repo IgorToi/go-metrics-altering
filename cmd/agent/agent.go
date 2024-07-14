@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -45,6 +46,31 @@ func main() {
 			metric.MType = config.GaugeType
 			metric.Value = &v
 			metrics = append(metrics, metric)
+
+			metric = models.Metrics{}
+			delta := int64(cfg.Count)
+			metric.ID = config.PollCount
+			metric.MType = config.CountType
+			metric.Delta = &delta
+			metrics = append(metrics, metric)
+			metricsJSON, err  := json.Marshal(metrics)
+			fmt.Println(metricsJSON)
+			if err != nil {
+				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+			}
+			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
+			if err != nil {
+				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+			}
+
+
+
+
+
+
+
+
+
 		}
 		req := agent.R()
 		req.SetPathParams(map[string]string{
@@ -60,20 +86,7 @@ func main() {
 		}
 		logger.Log.Info("Metric has been sent successfully")
 
-		var metric models.Metrics
-		delta := int64(cfg.Count)
-		metric.ID = config.PollCount
-		metric.MType = config.CountType
-		metric.Delta = &delta
-		metrics = append(metrics, metric)
-		metricsJSON, err  := json.Marshal(metrics)
-		if err != nil {
-			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-		}
-		_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
-		if err != nil {
-			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-		}
+		
 
 	}
 }
