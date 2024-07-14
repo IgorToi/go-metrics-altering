@@ -135,8 +135,15 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		}
 	case CountType:
 		var metric models.Metrics
+
+
+
+
 		err := rep.conn.QueryRowContext(ctx, "SELECT name, type, value FROM counters WHERE name = $1", metricName).Scan(
 			&metric.ID, &metric.MType, &metric.Delta)
+			fmt.Println("!!!", metric)
+
+			
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows", zap.Error(err))
@@ -147,6 +154,10 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		default:
 			return metric, nil
 		}
+
+
+
+
 	}
 	return metric, nil
 }
