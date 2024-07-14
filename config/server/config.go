@@ -21,7 +21,7 @@ type ConfigServer struct {
 	FlagStoreInterval int
 	FlagStorePath     string
 	FlagRestore       bool
-	FlagDBDSN		  string	
+	FlagDBDSN         string
 }
 
 func LoadConfig() (*ConfigServer, error) {
