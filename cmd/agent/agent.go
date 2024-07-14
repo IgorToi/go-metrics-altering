@@ -61,7 +61,7 @@ func main() {
 		logger.Log.Info("Metric has been sent successfully")
 
 		var metric models.Metrics
-		var delta int64 = int64(cfg.Count)
+		delta := int64(cfg.Count)
 		metric.ID = config.PollCount
 		metric.MType = config.CountType
 		metric.Delta = &delta
@@ -70,7 +70,7 @@ func main() {
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
-		_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "text/plain").Post(req.URL)
+		_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL)
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
