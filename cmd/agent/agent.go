@@ -70,7 +70,7 @@ func main() {
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
-		_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL)
+		_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
