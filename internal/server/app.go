@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -51,7 +50,6 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	// fmt.Println(metrics)
 	for _, metric := range metrics {
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
 			logger.Log.Debug("usupported request type", zap.String("type", metric.MType))
@@ -118,7 +116,6 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	// fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
@@ -198,9 +195,6 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println(req)
-
 	resp := models.Metrics{
 		ID:    req.ID,
 		MType: req.MType,
@@ -222,9 +216,7 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		}
 	case config.CountType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
-			fmt.Println("EXISTS")
 			res, err := app.storage.Get(ctx, req.MType, req.ID)
-			fmt.Println(res)
 			if err != nil {
 				logger.Log.Debug("error while obtaining metric", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -237,8 +229,6 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	fmt.Println(resp)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Add("Content-Encoding", "gzip")
 	enc := json.NewEncoder(w)
@@ -247,10 +237,4 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Log.Debug("sending HTTP 200 response")
-
-
-
-
-
-
 }

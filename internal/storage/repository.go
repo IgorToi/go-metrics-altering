@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
@@ -89,7 +88,6 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 			return err
 		}
 	case CountType:
-		fmt.Println("ADD ----", metricName, metricValue )
 		_, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
@@ -108,15 +106,6 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 			return err
 		}
 	case CountType:
-		// fmt.Println("UPDATE ----", metricName, metricValue )
-		// metric, err := rep.Get(ctx, metricType, metricName) 
-		// if err != nil {
-		// 	logger.Log.Fatal("error while obtaining current counter metric", zap.Error(err))
-		// 	return err
-		// }
-		// cur
-
-
 		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
@@ -145,15 +134,8 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		}
 	case CountType:
 		var metric models.Metrics
-
-
-
-
 		err := rep.conn.QueryRowContext(ctx, "SELECT name, type, value FROM counters WHERE name = $1", metricName).Scan(
 			&metric.ID, &metric.MType, &metric.Delta)
-			fmt.Println("!!!", metric)
-
-
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows", zap.Error(err))
@@ -164,10 +146,6 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		default:
 			return metric, nil
 		}
-
-
-
-
 	}
 	return metric, nil
 }
@@ -175,7 +153,6 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 func (rep *Repository) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if err := rep.conn.PingContext(ctx); err != nil {
-		fmt.Println(err)
 		logger.Log.Info("error", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return

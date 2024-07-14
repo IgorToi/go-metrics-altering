@@ -62,15 +62,6 @@ func main() {
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
-
-
-
-
-
-
-
-
-
 		}
 		req := agent.R()
 		req.SetPathParams(map[string]string{
@@ -85,8 +76,5 @@ func main() {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
 		logger.Log.Info("Metric has been sent successfully")
-
-		
-
 	}
 }
