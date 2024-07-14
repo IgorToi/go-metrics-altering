@@ -89,6 +89,7 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 			return err
 		}
 	case CountType:
+		fmt.Println("ADD ----", metricName, metricValue )
 		_, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
@@ -107,6 +108,7 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 			return err
 		}
 	case CountType:
+		fmt.Println("UPDATE ----", metricName, metricValue )
 		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
@@ -143,7 +145,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 			&metric.ID, &metric.MType, &metric.Delta)
 			fmt.Println("!!!", metric)
 
-			
+
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows", zap.Error(err))
