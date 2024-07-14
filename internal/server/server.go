@@ -26,7 +26,7 @@ func RunServer() {
     logger.Log.Info("Running server", zap.String("address", cfg.FlagRunAddr))
     switch cfg.FlagDBDSN {
     case "":
-        http.ListenAndServe(cfg.FlagRunAddr, MetricRouter(cfg))
+        http.ListenAndServe(cfg.FlagRunAddr, MetricRouter(cfg, ctx))
         if err != nil {
             logger.Log.Fatal("cannot start the server", zap.Error(err))
         }

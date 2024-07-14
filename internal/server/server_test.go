@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -164,7 +165,7 @@ func TestValueHandler(t *testing.T) {
 
 func TestInformationHandle(t *testing.T) {
 	cfg, _ := config.LoadConfig()
-	ts := httptest.NewServer(MetricRouter(cfg))
+	ts := httptest.NewServer(MetricRouter(cfg, context.Background()))
 	defer ts.Close()
 	type want struct {
 		code        int
