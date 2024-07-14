@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -195,6 +196,9 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println(req)
+
 	resp := models.Metrics{
 		ID:    req.ID,
 		MType: req.MType,
@@ -228,13 +232,21 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Add("Content-Encoding", "gzip")
-		enc := json.NewEncoder(w)
-		if err := enc.Encode(resp); err != nil {
-			logger.Log.Debug("error encoding response", zap.Error(err))
-			return
-		}
-		logger.Log.Debug("sending HTTP 200 response")
 	}
+	fmt.Println(resp)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Encoding", "gzip")
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(resp); err != nil {
+		logger.Log.Debug("error encoding response", zap.Error(err))
+		return
+	}
+	logger.Log.Debug("sending HTTP 200 response")
+
+
+
+
+
+
 }
