@@ -118,7 +118,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	fmt.Println(req)
+	// fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
