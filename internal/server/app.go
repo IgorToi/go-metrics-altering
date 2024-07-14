@@ -220,7 +220,9 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		}
 	case config.CountType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
+			fmt.Println("EXISTS")
 			res, err := app.storage.Get(ctx, req.MType, req.ID)
+			fmt.Println(res)
 			if err != nil {
 				logger.Log.Debug("error while obtaining metric", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
