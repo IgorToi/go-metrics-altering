@@ -155,6 +155,7 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			metric := PrepareMetricBodyNew(cfg, i)
 			metrics = append(metrics, metric)
 		}
+		_ = PrepareMetricBodyNew(cfg, config.PollCount)
 		fmt.Println(metrics)
 		metricsJSON, err := json.Marshal(metrics)
 		if err != nil {
