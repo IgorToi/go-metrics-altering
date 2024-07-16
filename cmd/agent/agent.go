@@ -10,6 +10,7 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	httpAgent "github.com/igortoigildin/go-metrics-altering/internal/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"go.uber.org/zap"
 )
 
@@ -51,7 +52,7 @@ func main() {
 			logger.Log.Info("Metric has been sent successfully")
 
 			// preparing and sending slice of metrics to /updates/
-			metrics := prepareMetricBody(cfg, i)
+			metrics := PrepareMetricBody(cfg, i)
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
@@ -62,7 +63,7 @@ func main() {
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
-						metrics := prepareMetricBody(cfg, i)
+						metrics := PrepareMetricBody(cfg, i)
 						metricsJSON, err := json.Marshal(metrics)
 						if err != nil {
 							logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
@@ -99,4 +100,24 @@ func main() {
 		}
 		logger.Log.Info("Metric has been sent successfully")
 	}
+}
+
+func PrepareMetricBody(cfg *config.ConfigAgent, metricName string) []models.Metrics {
+	var metrics []models.Metrics
+	valueGauge := cfg.Memory[metricName]
+	metric := models.Metrics{
+		ID:    metricName,
+		MType: config.GaugeType,
+		Value: &valueGauge,
+	}
+	metrics = append(metrics, metric)
+
+	valueDelta := int64(cfg.Count)
+	metric = models.Metrics{
+		ID:    config.PollCount,
+		MType: config.CountType,
+		Delta: &valueDelta,
+	}
+	metrics = append(metrics, metric)
+	return metrics
 }
