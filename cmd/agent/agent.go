@@ -178,7 +178,11 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 
 func head(s string) bool {
 	r, e := http.Head(s)
-	return e == nil && r.StatusCode == 200
+	if e != nil {
+		return false
+	}
+	defer r.Body.Close()
+	return r.StatusCode == 200
  }
  
 
