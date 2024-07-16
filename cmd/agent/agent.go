@@ -40,8 +40,7 @@ func main() {
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
-						if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req)
-						err == nil {
+						if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req); err == nil {
 							break
 						}
 						t += 2
@@ -61,15 +60,14 @@ func main() {
 			if err != nil {
 				// if error due to timeout - try send again
 				if os.IsTimeout(err) {
-                    for n, t := 1, 1; n <= 3; n++ {
-                        time.Sleep(time.Duration(t) * time.Second)
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
 						metrics := prepareMetricBody(cfg, i)
 						metricsJSON, err := json.Marshal(metrics)
 						if err != nil {
 							logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 						}
-						if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); 
-						err == nil {
+						if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); err == nil {
 							break
 						}
 						t += 2
@@ -91,8 +89,7 @@ func main() {
 			if os.IsTimeout(err) {
 				for n, t := 1, 1; n <= 3; n++ {
 					time.Sleep(time.Duration(t) * time.Second)
-					if _, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req);
-					err == nil {
+					if _, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req); err == nil {
 						break
 					}
 					t += 2

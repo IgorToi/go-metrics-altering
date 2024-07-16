@@ -32,10 +32,26 @@ func NewRepository(conn *sql.DB) *Repository {
 
 func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	dbDSN := cfg.FlagDBDSN
-	conn, err := sql.Open("pgx", dbDSN)
+	_, err := sql.Open("pgx", dbDSN)
 	if err != nil {
+					//
+					if err, ok := err.(*pq.Error); ok {
+						if pgerrcode.IsConnectionException(string(err.Code)) {
+							for n, t := 1, 1; n <= 3; n++ {
+								time.Sleep(time.Duration(t) * time.Second)
+								var e error
+								if _, e = sql.Open("pgx", dbDSN);
+								e == nil {
+									break
+								}
+								t += 2
+							}
+						}
+					}
+					//
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
 	}
+	conn, _ := sql.Open("pgx", dbDSN)
 	rep := NewRepository(conn)
 	ctx, cancel := context.WithCancel(c)
 	defer cancel()
