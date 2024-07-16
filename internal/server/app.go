@@ -146,15 +146,18 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case config.CountType:
+		
 		if app.storage.Exist(ctx, req.MType, req.ID) {
-			err := app.storage.Update(ctx, req.MType, req.ID, req.Value)
+			err := app.storage.Update(ctx, req.MType, req.ID, req.Delta)
+			fmt.Println("???")
 			if err != nil {
 				logger.Log.Debug("error while updating value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else {
-			err := app.storage.Add(ctx, req.MType, req.ID, req.Value)
+			err := app.storage.Add(ctx, req.MType, req.ID, req.Delta)
+			fmt.Println("???!!!!")
 			if err != nil {
 				logger.Log.Debug("error while adding value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
