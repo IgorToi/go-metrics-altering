@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -46,6 +47,7 @@ func main() {
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
 				// if error due to timeout - try send again
+				fmt.Println("ERROR sending metric", err)
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
@@ -68,6 +70,7 @@ func main() {
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
 				// if error due to timeout - try send again
+				fmt.Println("ERROR sending metric", err)
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
@@ -95,6 +98,7 @@ func main() {
 		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
 			// if error due to timeout - try send again
+			fmt.Println("ERROR sending metric", err)
 			if os.IsTimeout(err) {
 				for n, t := 1, 1; n <= 3; n++ {
 					time.Sleep(time.Duration(t) * time.Second)
