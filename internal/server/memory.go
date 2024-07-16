@@ -35,7 +35,9 @@ func InitRepo(c context.Context, cfg *config.ConfigServer) *DB {
 }
 
 // iterate through memStorage
-func (m MemStorage) ConvertToSlice() []models.Metrics {
+func (m *MemStorage) ConvertToSlice() []models.Metrics {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	metricSlice := make([]models.Metrics, 33)
 	var model models.Metrics
 	for i, v := range m.Gauge {
@@ -61,7 +63,6 @@ func Save(fname string, metricSlice []models.Metrics) error {
 		return err
 	}
 	err = os.WriteFile(fname, data, 0606)
-
 	//
 	if os.IsTimeout(err) {
 		for n, t := 1, 1; n <= 3; n++ {
@@ -80,17 +81,21 @@ func Save(fname string, metricSlice []models.Metrics) error {
 
 // load metrics from local file
 func (m *MemStorage) Load(fname string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		//
-		// for n, t := 1, 1; n <= 3; n++ {
-		// 	time.Sleep(time.Duration(t) * time.Second)
-		// 	data, err = os.ReadFile(fname)
-		// 	if err == nil {
-		// 		logger.Log.Info("Metrics saved successfully")
-		// 		break
+		// if os.IsTimeout(err) {
+		// 	for n, t := 1, 1; n <= 3; n++ {
+		// 		time.Sleep(time.Duration(t) * time.Second)
+		// 		data, err = os.ReadFile(fname)
+		// 		if err == nil {
+		// 			logger.Log.Info("Metrics saved successfully")
+		// 			break
+		// 		}
+		// 		t += 2
 		// 	}
-		// 	t += 2
 		// }
 		//
 		return err
@@ -111,6 +116,8 @@ func (m *MemStorage) Load(fname string) error {
 
 // save metrics from memStorage to the file every StoreInterval
 func (m *MemStorage) saveMetrics(cfg *config.ConfigServer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	pauseDuration := time.Duration(cfg.FlagStoreInterval) * time.Second
 	for {
 		time.Sleep(pauseDuration)

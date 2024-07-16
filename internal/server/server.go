@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
@@ -12,6 +13,7 @@ import (
 type MemStorage struct {
 	Gauge   map[string]float64
 	Counter map[string]int64
+	mu 		sync.Mutex
 }
 
 func RunServer() {

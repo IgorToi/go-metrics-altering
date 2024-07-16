@@ -42,6 +42,7 @@ func main() {
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
+						v = cfg.Memory[i]
 						if _, err = httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req); err == nil {
 							logger.Log.Info("Metric has been sent successfully")
 							break
@@ -65,6 +66,8 @@ func main() {
 			metric.MType = config.CountType
 			metric.Delta = &delta
 			metrics = append(metrics, metric)
+
+
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
@@ -72,11 +75,40 @@ func main() {
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+
+
+
+
+
+
+
+
+
+
 				//
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
-						if _, err = req.Post(req.URL + "/updates/"); err == nil {
+
+						// do update of metrics
+						var metric models.Metrics
+						metric.ID = i
+						metric.MType = config.GaugeType
+						metric.Value = &v
+						metrics = append(metrics, metric)
+
+						metric = models.Metrics{}
+						delta := int64(cfg.Count)
+						metric.ID = config.PollCount
+						metric.MType = config.CountType
+						metric.Delta = &delta
+						metrics = append(metrics, metric)
+						metricsJSON, err := json.Marshal(metrics)
+						if err != nil {
+							logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+						}
+						//repeat request with new metric
+						if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); err == nil {
 							logger.Log.Info("Metric has been sent successfully")
 							break
 						}
