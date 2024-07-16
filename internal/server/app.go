@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -37,7 +36,6 @@ func routerDB(ctx context.Context, cfg *config.ConfigServer) chi.Router {
 }
 
 func (app *app) updates(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("HERE WE GO")
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -52,8 +50,6 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	fmt.Println("ВЫЗОВ UPDATEs")
-	fmt.Println(metrics)
 	// iterating through []Metrics and adding it to db one by one
 	for _, metric := range metrics {
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
@@ -149,7 +145,6 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		
 		if app.storage.Exist(ctx, req.MType, req.ID) {
 			err := app.storage.Update(ctx, req.MType, req.ID, req.Delta)
-			fmt.Println("???")
 			if err != nil {
 				logger.Log.Debug("error while updating value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -157,7 +152,6 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			err := app.storage.Add(ctx, req.MType, req.ID, req.Delta)
-			fmt.Println("???!!!!")
 			if err != nil {
 				logger.Log.Debug("error while adding value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -225,7 +219,6 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			}
 			resp.Value = res.Value
 		} else {
-			fmt.Printf("Metric not found - %s\n", req.ID)
 			logger.Log.Debug("unsupported metric name", zap.String("name", req.ID))
 			w.WriteHeader(http.StatusNotFound)
 			return

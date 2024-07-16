@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -24,13 +23,9 @@ func main() {
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
 		logger.Log.Fatal("error while initializing logger", zap.Error(err))
 	}
-
-
-
 	// start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()
-
-	// start goroutine to send bunch metrics 
+	// start goroutine to send metrics via /update/ - variant 2
 	go SendAllMetrics(cfg)
 
 
@@ -54,43 +49,43 @@ func main() {
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
 				// if error due to timeout - try send again
-				if os.IsTimeout(err) {
-						for n, t := 1, 1; n <= 3; n++ {
-						time.Sleep(time.Duration(t) * time.Second)
-						if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req); err == nil {
-							break
-						}
-						t += 2
-					}
-				}
+				// if os.IsTimeout(err) {
+				// 		for n, t := 1, 1; n <= 3; n++ {
+				// 		time.Sleep(time.Duration(t) * time.Second)
+				// 		if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req); err == nil {
+				// 			break
+				// 		}
+				// 		t += 2
+				// 	}
+				// }
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			// logger.Log.Info("Metric has been sent successfully")
 
 			// preparing and sending slice of metrics to /updates/
-			metrics := PrepareMetricBody(cfg, i)
-			metricsJSON, err := json.Marshal(metrics)
-			if err != nil {
-				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-			}
-			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
-			if err != nil {
-				// if error due to timeout - try send again
-				if os.IsTimeout(err) {
-					for n, t := 1, 1; n <= 3; n++ {
-						time.Sleep(time.Duration(t) * time.Second)
-						metrics := PrepareMetricBody(cfg, i)
-						metricsJSON, err := json.Marshal(metrics)
-						if err != nil {
-							logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-						}
-						if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); err == nil {
-							break
-						}
-						t += 2
-					}
-				}
-			}
+			// metrics := PrepareMetricBody(cfg, i)
+			// metricsJSON, err := json.Marshal(metrics)
+			// if err != nil {
+			// 	logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+			// }
+			// _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
+			// if err != nil {
+			// 	// if error due to timeout - try send again
+			// 	if os.IsTimeout(err) {
+			// 		for n, t := 1, 1; n <= 3; n++ {
+			// 			time.Sleep(time.Duration(t) * time.Second)
+			// 			metrics := PrepareMetricBody(cfg, i)
+			// 			metricsJSON, err := json.Marshal(metrics)
+			// 			if err != nil {
+			// 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+			// 			}
+			// 			if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); err == nil {
+			// 				break
+			// 			}
+			// 			t += 2
+			// 		}
+			// 	}
+			// }
 		}
 		req := agent.R()
 		req.SetPathParams(map[string]string{
@@ -103,40 +98,40 @@ func main() {
 		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
 			// if error due to timeout - try send again
-			if os.IsTimeout(err) {
-				for n, t := 1, 1; n <= 3; n++ {
-					time.Sleep(time.Duration(t) * time.Second)
-					if _, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req); err == nil {
-						break
-					}
-					t += 2
-				}
-			}
+			// if os.IsTimeout(err) {
+			// 	for n, t := 1, 1; n <= 3; n++ {
+			// 		time.Sleep(time.Duration(t) * time.Second)
+			// 		if _, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req); err == nil {
+			// 			break
+			// 		}
+			// 		t += 2
+			// 	}
+			
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
 		logger.Log.Info("Metric has been sent successfully")
 	}
 }
 
-func PrepareMetricBody(cfg *config.ConfigAgent, metricName string) []models.Metrics {
-	var metrics []models.Metrics
-	valueGauge := cfg.Memory[metricName]
-	metric := models.Metrics{
-		ID:    metricName,
-		MType: config.GaugeType,
-		Value: &valueGauge,
-	}
-	metrics = append(metrics, metric)
+// func PrepareMetricBody(cfg *config.ConfigAgent, metricName string) []models.Metrics {
+// 	var metrics []models.Metrics
+// 	valueGauge := cfg.Memory[metricName]
+// 	metric := models.Metrics{
+// 		ID:    metricName,
+// 		MType: config.GaugeType,
+// 		Value: &valueGauge,
+// 	}
+// 	metrics = append(metrics, metric)
 
-	valueDelta := int64(cfg.Count)
-	metric = models.Metrics{
-		ID:    config.PollCount,
-		MType: config.CountType,
-		Delta: &valueDelta,
-	}
-	metrics = append(metrics, metric)
-	return metrics
-}
+// 	valueDelta := int64(cfg.Count)
+// 	metric = models.Metrics{
+// 		ID:    config.PollCount,
+// 		MType: config.CountType,
+// 		Delta: &valueDelta,
+// 	}
+// 	metrics = append(metrics, metric)
+// 	return metrics
+// }
 
 
 
@@ -151,13 +146,8 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 		time.Sleep(durationPause)
 		for i := range cfg.Memory {
 			_ = PrepareMetricBodyNew(cfg, i)
-			count := PrepareMetricBodyNew(cfg, config.PollCount)
-			fmt.Println(count)
-			fmt.Println("!!!")
-		}
-		
-
-			
+			_ = PrepareMetricBodyNew(cfg, config.PollCount)
+		}	
 	}
 }
 
@@ -175,7 +165,6 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			MType: 	config.CountType,
 			Delta: 	&valueDelta,
 		}
-		fmt.Println("WE ARE HERE")
 	default:
 		valueGauge := cfg.Memory[metricName]
 		metric = models.Metrics{
@@ -204,9 +193,6 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 				}
 			}
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-		
 	}
-
-
 	return metric
 }
