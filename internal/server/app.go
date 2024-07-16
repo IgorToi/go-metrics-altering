@@ -33,6 +33,15 @@ func routerDB(ctx context.Context, cfg *config.ConfigServer) chi.Router {
 	r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updateMetric))))
 	r.Post("/updates/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updates))))
 	r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(app.getMetric))))
+
+
+	// to be deleted
+	metrics, err := app.storage.GetAll(ctx)
+	if err != nil {
+		logger.Log.Debug("error", zap.Error(err))
+	}
+	fmt.Println(metrics)
+
 	return r
 }
 
