@@ -152,6 +152,7 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 	req.URL = config.ProtocolScheme + cfg.FlagRunAddr
 	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
 	for {
+		metrics = metrics[:0]
 		time.Sleep(durationPause)
 		for i := range cfg.Memory {
 			metric := PrepareMetricBodyNew(cfg, i)
@@ -172,7 +173,7 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
-						if _, err = req.SetBody(metricsJSON).Post(req.URL); err == nil {
+						if _, err = req.Post(req.URL); err == nil {
 							break
 						}
 						t += 2
