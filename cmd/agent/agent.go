@@ -157,8 +157,8 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			metric := PrepareMetricBodyNew(cfg, i)
 			metrics = append(metrics, metric)
 		}
+		fmt.Println(metrics)
 		metricsJSON, err := json.Marshal(metrics)
-		fmt.Println(metricsJSON)
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}

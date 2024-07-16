@@ -118,7 +118,6 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 	
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	fmt.Println("ВЫЗОВ UPDATE")
 
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -137,8 +136,6 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-
-	fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {
@@ -203,7 +200,6 @@ func (app *app) getAllmetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("ВЫЗОВ №1")
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -234,7 +230,7 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			}
 			resp.Value = res.Value
 		} else {
-			fmt.Println("AMERICA")
+			fmt.Printf("Metric not found - %s\n", req.ID)
 			logger.Log.Debug("unsupported metric name", zap.String("name", req.ID))
 			w.WriteHeader(http.StatusNotFound)
 			return
