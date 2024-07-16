@@ -56,7 +56,6 @@ func main() {
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
 				// if error due to timeout - try send again
-				fmt.Println("ERROR sending metric", err)	
 				if os.IsTimeout(err) {
 						for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
@@ -79,7 +78,6 @@ func main() {
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
 				// if error due to timeout - try send again
-				fmt.Println("ERROR sending metric", err)
 				if os.IsTimeout(err) {
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
@@ -107,7 +105,6 @@ func main() {
 		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
 			// if error due to timeout - try send again
-			fmt.Println("ERROR sending metric", err)
 			if os.IsTimeout(err) {
 				for n, t := 1, 1; n <= 3; n++ {
 					time.Sleep(time.Duration(t) * time.Second)
@@ -206,5 +203,29 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			Value: &valueGauge,
 		}
 	}
+	agent := resty.New()
+	req := agent.R().SetHeader("Content-Type", "application/json")
+	req.URL = config.ProtocolScheme + cfg.FlagRunAddr
+	metricsJSON, err := json.Marshal(metric)
+		if err != nil {
+			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+		}
+	req.URL = req.URL + "/update/"
+	_, err = req.SetBody(metricsJSON).Post(req.URL)
+	if err != nil {
+			if os.IsTimeout(err) {
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					if _, err = req.Post(req.URL); err == nil {
+						break
+					}
+					t += 2
+				}
+			}
+			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+		
+	}
+
+
 	return metric
 }
