@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 	"time"
 
@@ -26,6 +27,7 @@ func main() {
 		time.Sleep(durationPause)
 		for i, v := range cfg.Memory {
 			req := agent.R()
+			// preparing and sending metric via url
 			req.SetPathParams(map[string]string{
 				"metricType":  config.GaugeType,
 				"metricName":  i,
@@ -38,19 +40,7 @@ func main() {
 			}
 			logger.Log.Info("Metric has been sent successfully")
 
-			// var metric models.Metrics
-			// metric.ID = i
-			// metric.MType = config.GaugeType
-			// metric.Value = &v
-			// metrics = append(metrics, metric)
-
-			// metric = models.Metrics{}
-			// delta := int64(cfg.Count)
-			// metric.ID = config.PollCount
-			// metric.MType = config.CountType
-			// metric.Delta = &delta
-			//metrics = append(metrics, metric)
-
+			// preparing and sending slice of metrics to /updates/
 			metrics := prepareMetricBody(cfg, i)
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
@@ -58,7 +48,22 @@ func main() {
 			}
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
-				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+				// if error due to timeout - try send again
+				if os.IsTimeout(err) {
+                    for n, t := 1, 1; n <= 3; n++ {
+                        time.Sleep(time.Duration(t) * time.Second)
+						metrics := prepareMetricBody(cfg, i)
+						metricsJSON, err := json.Marshal(metrics)
+						if err != nil {
+							logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+						}
+						if _, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/"); 
+						err == nil {
+							break
+						}
+						t += 2
+					}
+				}
 			}
 		}
 		req := agent.R()
