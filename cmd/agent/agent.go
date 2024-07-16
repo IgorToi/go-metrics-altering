@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -18,7 +19,11 @@ import (
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		logger.Log.Fatal("error while logading config", zap.Error(err))
+		if errors.Is(err, config.ErrParsingFlag) {
+			logger.Log.Fatal("error while parsing flag", zap.Error(err))
+		} else {
+			logger.Log.Fatal("unexpected flag error", zap.Error(err))
+		}
 	}
 	// start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()
@@ -29,6 +34,7 @@ func main() {
 		time.Sleep(durationPause)
 		for i, v := range cfg.Memory {
 			req := agent.R()
+			// Varint 1 with memory
 			req.SetPathParams(map[string]string{
 				"metricType":  config.GaugeType,
 				"metricName":  i,
@@ -40,27 +46,40 @@ func main() {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			logger.Log.Info("Metric has been sent successfully")
-
-			var metric models.Metrics
-			metric.ID = i
-			metric.MType = config.GaugeType
-			metric.Value = &v
-			metrics = append(metrics, metric)
-
-			metric = models.Metrics{}
+			// Varint 2 with DB
+			metricGauge := models.Metrics{
+				ID:    i,
+				MType: config.GaugeType,
+				Value: &v,
+			}
+			metrics = append(metrics, metricGauge)
 			delta := int64(cfg.Count)
-			metric.ID = config.PollCount
-			metric.MType = config.CountType
-			metric.Delta = &delta
-			metrics = append(metrics, metric)
+			metricCounter := models.Metrics{
+				ID:    config.PollCount,
+				MType: config.CountType,
+				Delta: &delta,
+			}
+			metrics = append(metrics, metricCounter)
 			metricsJSON, err := json.Marshal(metrics)
-			fmt.Println(metricsJSON)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
-				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+				urlErr := err.(*url.Error)
+				if urlErr.Timeout() {
+					// attempt to send metric again
+					logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err = req.Post(req.URL + "/updates/"); err == nil {
+							logger.Log.Info("Metric has been sent successfully")
+							break
+						}
+						t += 2
+					}
+				}
+
 			}
 		}
 		req := agent.R()

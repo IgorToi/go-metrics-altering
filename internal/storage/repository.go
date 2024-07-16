@@ -3,12 +3,19 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"go.uber.org/zap"
+)
+
+var (
+	ErrMetricNotFound = errors.New("metric not found")
+	ErrSqlExecution   = errors.New("sql query execution failed")
 )
 
 const (
@@ -39,6 +46,14 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	// check connection
 	if err = rep.conn.PingContext(ctx); err != nil {
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
+		for n, t := 1, 1; n <= 3; n++ {
+			time.Sleep(time.Duration(t) * time.Second)
+			if err = rep.conn.PingContext(ctx); err == nil {
+				logger.Log.Info("Connection estbalished successfully")
+				break
+			}
+			t += 2
+		}
 	}
 	// start Tx
 	tx, err := rep.conn.BeginTx(ctx, nil)
@@ -46,10 +61,16 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 		logger.Log.Fatal("error while starting Tx", zap.Error(err))
 	}
 	defer tx.Rollback()
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
+	_, err = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
 		"type TEXT NOT NULL, value bigint);")
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
+	if err != nil {
+		logger.Log.Fatal("error while creating counter table", zap.Error(err))
+	}
+	_, err = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
 		"type TEXT NOT NULL, value DOUBLE PRECISION);")
+	if err != nil {
+		logger.Log.Fatal("error while creating gauges table", zap.Error(err))
+	}
 	tx.Commit()
 	return rep
 }
@@ -85,14 +106,14 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
-			return err
+			return ErrSqlExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
+			return ErrSqlExecution
 		}
 	}
 	return tx.Commit()
@@ -109,14 +130,14 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
-			return err
+			return ErrSqlExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
+			return ErrSqlExecution
 		}
 	}
 	return tx.Commit()
@@ -132,7 +153,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows selected", zap.Error(err))
-			return metric, err
+			return metric, ErrMetricNotFound
 		case err != nil:
 			logger.Log.Fatal("error while obtaining metrics", zap.Error(err))
 			return metric, err
@@ -146,7 +167,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows selected", zap.Error(err))
-			return metric, err
+			return metric, ErrMetricNotFound
 		case err != nil:
 			logger.Log.Fatal("error while obtaining metrics", zap.Error(err))
 			return metric, err
@@ -172,7 +193,7 @@ func (rep *Repository) GetAll(ctx context.Context) (map[string]any, error) {
 	metrics := make(map[string]any, 33)
 	rows, err := rep.conn.QueryContext(ctx, "SELECT name, value FROM gauges WHERE type = $1", GaugeType)
 	if err != nil {
-		return nil, err
+		return nil, ErrSqlExecution
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -190,7 +211,7 @@ func (rep *Repository) GetAll(ctx context.Context) (map[string]any, error) {
 	}
 	rows, err = rep.conn.QueryContext(ctx, "SELECT name, value FROM counters WHERE type = $1", CountType)
 	if err != nil {
-		return nil, err
+		return nil, ErrSqlExecution
 	}
 	defer rows.Close()
 	for rows.Next() {

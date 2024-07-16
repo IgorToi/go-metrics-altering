@@ -60,7 +60,18 @@ func Save(fname string, metricSlice []models.Metrics) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(fname, data, 0606)
+	if err = os.WriteFile(fname, data, 0606); err != nil {
+		logger.Log.Info("Error while saving metrics to the file")
+		for n, t := 1, 1; n <= 3; n++ {
+			time.Sleep(time.Duration(t) * time.Second)
+			if err = os.WriteFile(fname, data, 0606); err == nil {
+				logger.Log.Info("Metrics saved successfully")
+				break
+			}
+			t += 2
+		}
+	}
+	return err
 }
 
 // load metrics from local file

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 	"math/rand"
 	"os"
@@ -30,6 +31,8 @@ type ConfigAgent struct {
 	Count              int
 }
 
+var ErrParsingFlag = errors.New("string error parsing")
+
 func LoadConfig() (*ConfigAgent, error) {
 	cfg := new(ConfigAgent)
 	cfg.Memory = make(map[string]float64)
@@ -45,12 +48,14 @@ func LoadConfig() (*ConfigAgent, error) {
 		cfg.FlagReportInterval, err = strconv.Atoi(envRoportInterval)
 		if err != nil {
 			logger.Log.Fatal("error while parsing report interval", zap.Error(err))
+			return nil, ErrParsingFlag
 		}
 	}
 	if envPollInterval := os.Getenv("POLL_INTERVAL"); envPollInterval != "" {
 		cfg.FlagPollInterval, err = strconv.Atoi(envPollInterval)
 		if err != nil {
 			logger.Log.Fatal("error while parsing poll interval", zap.Error(err))
+			return nil, ErrParsingFlag
 		}
 	}
 	return cfg, err
