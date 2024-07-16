@@ -28,6 +28,7 @@ type ConfigAgent struct {
 	Rtm                runtime.MemStats
 	Memory             map[string]float64
 	Count              int
+	FlagLogLevel      string
 }
 
 func LoadConfig() (*ConfigAgent, error) {
@@ -37,6 +38,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent to the server")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
+	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr

@@ -20,6 +20,14 @@ func main() {
 	if err != nil {
 		logger.Log.Fatal("error while logading config", zap.Error(err))
 	}
+
+
+	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
+		logger.Log.Fatal("error while initializing logger", zap.Error(err))
+	}
+
+
+	
 	// start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()
 	agent := resty.New()
