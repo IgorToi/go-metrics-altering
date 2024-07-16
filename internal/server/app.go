@@ -60,6 +60,8 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	fmt.Println("ВЫЗОВ UPDATEs")
+	fmt.Println(metrics)
 	// iterating through []Metrics and adding it to db one by one
 	for _, metric := range metrics {
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
