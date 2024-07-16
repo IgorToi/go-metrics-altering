@@ -36,6 +36,17 @@ func main() {
 			req.URL = config.ProtocolScheme + cfg.FlagRunAddr
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
+				// if error due to timeout - try send again
+				if os.IsTimeout(err) {
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req)
+						err == nil {
+							break
+						}
+						t += 2
+					}
+				}
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			logger.Log.Info("Metric has been sent successfully")
@@ -76,6 +87,17 @@ func main() {
 		req.URL = config.ProtocolScheme + cfg.FlagRunAddr
 		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
+			// if error due to timeout - try send again
+			if os.IsTimeout(err) {
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					if _, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req);
+					err == nil {
+						break
+					}
+					t += 2
+				}
+			}
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 		}
 		logger.Log.Info("Metric has been sent successfully")
