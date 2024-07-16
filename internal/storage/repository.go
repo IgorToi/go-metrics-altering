@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
@@ -16,6 +17,12 @@ const (
 	CountType = "counter"
 	PollCount = "PollCount"
 )
+
+var (
+    ErrMetricNotFound = errors.New("metric not found")
+    ErrSQLExecution   = errors.New("sql query execution failed")
+)
+
 
 type Repository struct {
 	conn *sql.DB
@@ -85,14 +92,14 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
-			return err
+			return ErrSQLExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
+			return ErrSQLExecution
 		}
 	}
 	return tx.Commit()
@@ -109,14 +116,14 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
-			return err
+			return ErrSQLExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
+			return ErrSQLExecution
 		}
 	}
 	return tx.Commit()
@@ -132,7 +139,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows selected", zap.Error(err))
-			return metric, err
+			return metric, ErrMetricNotFound
 		case err != nil:
 			logger.Log.Fatal("error while obtaining metrics", zap.Error(err))
 			return metric, err
@@ -146,7 +153,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 		switch {
 		case err == sql.ErrNoRows:
 			logger.Log.Fatal("no rows selected", zap.Error(err))
-			return metric, err
+			return metric, ErrMetricNotFound
 		case err != nil:
 			logger.Log.Fatal("error while obtaining metrics", zap.Error(err))
 			return metric, err
