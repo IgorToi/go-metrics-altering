@@ -64,10 +64,42 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 		logger.Log.Fatal("error while starting Tx", zap.Error(err))
 	}
 	defer tx.Rollback()
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
+	_, err = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
 		"type TEXT NOT NULL, value bigint);")
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
+	if err != nil {
+		//
+		if err, ok := err.(*pq.Error); ok {
+			if pgerrcode.IsConnectionException(string(err.Code)) {
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					var e error
+					if _, e = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, value bigint);"); e == nil {
+						break
+					}
+					t += 2
+				}
+			}
+			//
+		}
+	}
+	_, err = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
 		"type TEXT NOT NULL, value DOUBLE PRECISION);")
+	if err != nil {
+				//
+				if err, ok := err.(*pq.Error); ok {
+					if pgerrcode.IsConnectionException(string(err.Code)) {
+						for n, t := 1, 1; n <= 3; n++ {
+							time.Sleep(time.Duration(t) * time.Second)
+							var e error
+							if _, e = tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, value DOUBLE PRECISION);"); e == nil {
+								break
+							}
+							t += 2
+						}
+					}
+					//
+				}
+	}
 	tx.Commit()
 	return rep
 }
