@@ -25,6 +25,7 @@ type ConfigAgent struct {
 	FlagRunAddr        string
 	FlagReportInterval int
 	FlagPollInterval   int
+	FlagLogLevel		string	
 	Rtm                runtime.MemStats
 	Memory             map[string]float64
 	Count              int
@@ -35,6 +36,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	cfg.Memory = make(map[string]float64)
 	var err error
 	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent to the server")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
 	flag.Parse()
@@ -52,6 +54,9 @@ func LoadConfig() (*ConfigAgent, error) {
 		if err != nil {
 			logger.Log.Fatal("error while parsing poll interval", zap.Error(err))
 		}
+	}
+	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+		cfg.FlagLogLevel = envLogLevel
 	}
 	return cfg, err
 }
