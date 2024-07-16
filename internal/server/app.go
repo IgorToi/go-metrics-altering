@@ -69,7 +69,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			} else {
-			// if not exists - add
+				// if not exists - add
 				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Value)
 				if err != nil {
 					logger.Log.Debug("error while adding value", zap.Error(err))
@@ -88,7 +88,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			} else {
-			// if not exists - add
+				// if not exists - add
 				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Delta)
 				if err != nil {
 					logger.Log.Debug("error while adding value", zap.Error(err))
