@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -158,11 +157,6 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			metric := PrepareMetricBodyNew(cfg, i)
 			metrics = append(metrics, metric)
 		}
-		for !head(req.URL) {
-			check := head(req.URL)
-			fmt.Println(req.URL)
-			fmt.Println(check)
-		}
 		metricsJSON, err := json.Marshal(metrics)
 		fmt.Println(metricsJSON)
 		if err != nil {
@@ -172,18 +166,25 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 		_, err = req.SetBody(metricsJSON).Post(req.URL)
 		if err != nil {
 			fmt.Println("NEW ERROR")
+
+				// if error due to timeout - try send again
+
+				if os.IsTimeout(err) {
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err = req.SetBody(metricsJSON).Post(req.URL); err == nil {
+							break
+						}
+						t += 2
+					}
+				}
+				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+			
 		}
 	}
 }
 
-func head(s string) bool {
-	r, e := http.Head(s)
-	if e != nil {
-		return false
-	}
-	defer r.Body.Close()
-	return r.StatusCode == 200
- }
+
  
 
  func PrepareMetricBodyNew(cfg *config.ConfigAgent, metricName string) models.Metrics {
