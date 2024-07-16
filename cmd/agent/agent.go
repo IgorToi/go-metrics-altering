@@ -9,7 +9,6 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	httpAgent "github.com/igortoigildin/go-metrics-altering/internal/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
-	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +22,6 @@ func main() {
 	go cfg.UpdateMetrics()
 	agent := resty.New()
 	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
-	var metrics []models.Metrics
 	for {
 		time.Sleep(durationPause)
 		for i, v := range cfg.Memory {
@@ -52,7 +50,7 @@ func main() {
 			// metric.MType = config.CountType
 			// metric.Delta = &delta
 			//metrics = append(metrics, metric)
-			
+
 			metrics := prepareMetricBody(cfg, i)
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
