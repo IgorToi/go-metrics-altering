@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -152,36 +151,38 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 		metrics = metrics[:0]
 		time.Sleep(durationPause)
 		for i := range cfg.Memory {
-			metric := PrepareMetricBodyNew(cfg, i)
-			metrics = append(metrics, metric)
+			_ = PrepareMetricBodyNew(cfg, i)
+			
+			//metrics = append(metrics, metric)
 		}
 		_ = PrepareMetricBodyNew(cfg, config.PollCount)
-		fmt.Println(metrics)
-		metricsJSON, err := json.Marshal(metrics)
-		if err != nil {
-			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
-		}
-		req.URL = req.URL + "/updates/"
-		_, err = req.SetBody(metricsJSON).Post(req.URL)
-		if err != nil {
-			fmt.Println("NEW ERROR")
+		// _ = PrepareMetricBodyNew(cfg, config.PollCount)
+		// fmt.Println(metrics)
+		// metricsJSON, err := json.Marshal(metrics)
+		// if err != nil {
+		// 	logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+		// }
+		// req.URL = req.URL + "/updates/"
+		// _, err = req.SetBody(metricsJSON).Post(req.URL)
+		// if err != nil {
+		// 	fmt.Println("NEW ERROR")
 
-				// if error due to timeout - try send again
+		// 		// if error due to timeout - try send again
 
-				if os.IsTimeout(err) {
-					for n, t := 1, 1; n <= 3; n++ {
-						time.Sleep(time.Duration(t) * time.Second)
-						if _, err = req.Post(req.URL); err == nil {
-							break
-						}
-						t += 2
-					}
-				}
-				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+		// 		if os.IsTimeout(err) {
+		// 			for n, t := 1, 1; n <= 3; n++ {
+		// 				time.Sleep(time.Duration(t) * time.Second)
+		// 				if _, err = req.Post(req.URL); err == nil {
+		// 					break
+		// 				}
+		// 				t += 2
+		// 			}
+		// 		}
+		// 		logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			
-		}
 	}
 }
+
 
 
  
