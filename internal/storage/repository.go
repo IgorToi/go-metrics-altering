@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -121,6 +122,7 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 		}
 		return exists
 	}
+	fmt.Println("ОШИБКА")
 	return false
 }
 
