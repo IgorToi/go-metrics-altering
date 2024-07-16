@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -31,6 +32,12 @@ func main() {
 
 	// start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()
+
+	// start goroutine to send bunch metrics 
+	go SendAllMetrics(cfg)
+
+
+
 	agent := resty.New()
 	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
 	for {
@@ -43,13 +50,16 @@ func main() {
 				"metricName":  i,
 				"metricValue": strconv.FormatFloat(v, 'f', 6, 64),
 			}).SetHeader("Content-Type", "text/plain")
+
+
+
 			req.URL = config.ProtocolScheme + cfg.FlagRunAddr
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
 				// if error due to timeout - try send again
-				fmt.Println("ERROR sending metric", err)
+				fmt.Println("ERROR sending metric", err)	
 				if os.IsTimeout(err) {
-					for n, t := 1, 1; n <= 3; n++ {
+						for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
 						if _, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(cfg.Memory[i], 'f', 6, 64), req); err == nil {
 							break
@@ -132,4 +142,63 @@ func PrepareMetricBody(cfg *config.ConfigAgent, metricName string) []models.Metr
 	}
 	metrics = append(metrics, metric)
 	return metrics
+}
+
+
+
+func SendAllMetrics(cfg *config.ConfigAgent) () {
+	var metrics []models.Metrics
+	agent := resty.New()
+	req := agent.R().SetHeader("Content-Type", "application/json")
+	req.URL = config.ProtocolScheme + cfg.FlagRunAddr
+	durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
+	for {
+		time.Sleep(durationPause)
+		for i := range cfg.Memory {
+			metric := PrepareMetricBodyNew(cfg, i)
+			metrics = append(metrics, metric)
+		}
+		for !head(req.URL) {
+			check := head(req.URL)
+			fmt.Println(req.URL)
+			fmt.Println(check)
+		}
+		metricsJSON, err := json.Marshal(metrics)
+		fmt.Println(metricsJSON)
+		if err != nil {
+			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+		}
+		req.URL = req.URL + "/updates/"
+		_, err = req.SetBody(metricsJSON).Post(req.URL)
+		if err != nil {
+			fmt.Println("NEW ERROR")
+		}
+	}
+}
+
+func head(s string) bool {
+	r, e := http.Head(s)
+	return e == nil && r.StatusCode == 200
+ }
+ 
+
+ func PrepareMetricBodyNew(cfg *config.ConfigAgent, metricName string) models.Metrics {
+	var metric models.Metrics
+	switch metricName {
+	case config.PollCount:
+		valueDelta := int64(cfg.Count)
+		metric = models.Metrics{
+			ID:    	config.PollCount,
+			MType: 	config.CountType,
+			Delta: 	&valueDelta,
+		}
+	default:
+		valueGauge := cfg.Memory[metricName]
+		metric = models.Metrics{
+			ID:    metricName,
+			MType: config.GaugeType,
+			Value: &valueGauge,
+		}
+	}
+	return metric
 }
