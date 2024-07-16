@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -75,51 +78,67 @@ func (rep *Repository) Exist(ctx context.Context, metricType string, metricName 
 }
 
 func (rep *Repository) Add(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	tx, err := rep.conn.Begin()
-	if err != nil {
-		logger.Log.Debug("error while strarting tx", zap.Error(err))
-	}
 	switch metricType {
 	case GaugeType:
-		_, err := tx.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue)
+		_, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue)
 		if err != nil {
-			tx.Rollback()
+			//
+			if err, ok := err.(*pq.Error); ok {
+				if pgerrcode.IsConnectionException(string(err.Code)) {
+					for n, t := 1, 1; n <= 3; n++ {
+                        time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue);
+						err == nil {
+							break
+						}
+						t += 2
+					}
+				}
+			//
+			}
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
 			return err
 		}
 	case CountType:
-		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
+		_, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
-			tx.Rollback()
+			//
+			if err, ok := err.(*pq.Error); ok {
+				if pgerrcode.IsConnectionException(string(err.Code)) {
+					for n, t := 1, 1; n <= 3; n++ {
+                        time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue);
+						err == nil {
+							break
+						}
+						t += 2
+					}
+				}
+			//
+			}
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (rep *Repository) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	tx, err := rep.conn.Begin()
-	if err != nil {
-		logger.Log.Debug("error while strarting tx", zap.Error(err))
-	}
 	switch metricType {
 	case GaugeType:
-		_, err := tx.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
+		_, err := rep.conn.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
-			tx.Rollback()
 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
 			return err
 		}
 	case CountType:
-		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
+		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
-			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (rep *Repository) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
