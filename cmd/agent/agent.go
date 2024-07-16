@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -20,8 +21,6 @@ func main() {
 	if err != nil {
 		logger.Log.Fatal("error while logading config", zap.Error(err))
 	}
-
-
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
 		logger.Log.Fatal("error while initializing logger", zap.Error(err))
 	}
@@ -152,7 +151,9 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 		time.Sleep(durationPause)
 		for i := range cfg.Memory {
 			_ = PrepareMetricBodyNew(cfg, i)
-			_ = PrepareMetricBodyNew(cfg, config.PollCount)
+			count := PrepareMetricBodyNew(cfg, config.PollCount)
+			fmt.Println(count)
+			fmt.Println("!!!")
 		}
 		
 
@@ -174,6 +175,7 @@ func SendAllMetrics(cfg *config.ConfigAgent) () {
 			MType: 	config.CountType,
 			Delta: 	&valueDelta,
 		}
+		fmt.Println("WE ARE HERE")
 	default:
 		valueGauge := cfg.Memory[metricName]
 		metric = models.Metrics{
