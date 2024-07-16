@@ -103,7 +103,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
-	
+
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -142,7 +142,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case config.CountType:
-		
+
 		if app.storage.Exist(ctx, req.MType, req.ID) {
 			err := app.storage.Update(ctx, req.MType, req.ID, req.Delta)
 			if err != nil {

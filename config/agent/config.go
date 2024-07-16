@@ -28,7 +28,7 @@ type ConfigAgent struct {
 	Rtm                runtime.MemStats
 	Memory             map[string]float64
 	Count              int
-	FlagLogLevel      string
+	FlagLogLevel       string
 }
 
 func LoadConfig() (*ConfigAgent, error) {
