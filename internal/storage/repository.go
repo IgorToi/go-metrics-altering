@@ -15,7 +15,7 @@ import (
 
 var (
 	ErrMetricNotFound = errors.New("metric not found")
-	ErrSqlExecution   = errors.New("sql query execution failed")
+	ErrSQLExecution   = errors.New("sql query execution failed")
 )
 
 const (
@@ -106,14 +106,14 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
-			return ErrSqlExecution
+			return ErrSQLExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return ErrSqlExecution
+			return ErrSQLExecution
 		}
 	}
 	return tx.Commit()
@@ -130,14 +130,14 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
-			return ErrSqlExecution
+			return ErrSQLExecution
 		}
 	case CountType:
 		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return ErrSqlExecution
+			return ErrSQLExecution
 		}
 	}
 	return tx.Commit()
@@ -193,7 +193,7 @@ func (rep *Repository) GetAll(ctx context.Context) (map[string]any, error) {
 	metrics := make(map[string]any, 33)
 	rows, err := rep.conn.QueryContext(ctx, "SELECT name, value FROM gauges WHERE type = $1", GaugeType)
 	if err != nil {
-		return nil, ErrSqlExecution
+		return nil, ErrSQLExecution
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -211,7 +211,7 @@ func (rep *Repository) GetAll(ctx context.Context) (map[string]any, error) {
 	}
 	rows, err = rep.conn.QueryContext(ctx, "SELECT name, value FROM counters WHERE type = $1", CountType)
 	if err != nil {
-		return nil, ErrSqlExecution
+		return nil, ErrSQLExecution
 	}
 	defer rows.Close()
 	for rows.Next() {

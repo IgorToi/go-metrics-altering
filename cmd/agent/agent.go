@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -66,9 +65,9 @@ func main() {
 			}
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
-				urlErr := err.(*url.Error)
-				if urlErr.Timeout() {
-					// attempt to send metric again
+				// urlErr := err.(*url.Error)
+				// if urlErr != nil {
+				// attempt to send metric again
 					logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 					for n, t := 1, 1; n <= 3; n++ {
 						time.Sleep(time.Duration(t) * time.Second)
@@ -78,10 +77,10 @@ func main() {
 						}
 						t += 2
 					}
-				}
-
 			}
+
 		}
+	
 		req := agent.R()
 		req.SetPathParams(map[string]string{
 			"metricType":  config.CountType,
