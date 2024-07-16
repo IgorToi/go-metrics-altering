@@ -118,6 +118,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 	
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+	fmt.Println("ВЫЗОВ UPDATE")
 
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
@@ -136,7 +137,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	fmt.Println("ВЫЗОВ UPDATE")
+
 	fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
