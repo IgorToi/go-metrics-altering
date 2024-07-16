@@ -113,6 +113,7 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
+	
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -133,6 +134,8 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+	fmt.Println("ВЫЗОВ UPDATE")
+	fmt.Println(req)
 	switch req.MType {
 	case config.GaugeType:
 		if app.storage.Exist(ctx, req.MType, req.ID) {

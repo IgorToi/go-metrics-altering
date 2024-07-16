@@ -27,7 +27,7 @@ func main() {
 	}
 
 
-	
+
 	// start goroutine to update metrics every pollInterval
 	go cfg.UpdateMetrics()
 	agent := resty.New()
@@ -57,7 +57,7 @@ func main() {
 				}
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
-			logger.Log.Info("Metric has been sent successfully")
+			// logger.Log.Info("Metric has been sent successfully")
 
 			// preparing and sending slice of metrics to /updates/
 			metrics := PrepareMetricBody(cfg, i)
