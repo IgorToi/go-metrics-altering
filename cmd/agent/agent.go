@@ -37,6 +37,18 @@ func main() {
 			_, err := httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+
+				//
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					if _, err = httpAgent.SendMetric(req.URL, config.GaugeType, i, strconv.FormatFloat(v, 'f', 6, 64), req); err == nil {
+						logger.Log.Info("Metric has been sent successfully")
+						break
+					}
+					t += 2
+				}
+				//
+
 			}
 			logger.Log.Info("Metric has been sent successfully")
 
@@ -59,6 +71,23 @@ func main() {
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+				//
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					if _, err = req.Post(req.URL + "/updates/"); err == nil {
+						logger.Log.Info("Metric has been sent successfully")
+						break
+					}
+					t += 2
+				}
+				//
+
+
+
+
+
+
+
 			}
 		}
 		req := agent.R()
@@ -72,6 +101,21 @@ func main() {
 		_, err := httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req)
 		if err != nil {
 			logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+
+			//
+			for n, t := 1, 1; n <= 3; n++ {
+				time.Sleep(time.Duration(t) * time.Second)
+				if _, err = httpAgent.SendMetric(req.URL, config.CountType, config.PollCount, strconv.Itoa(cfg.Count), req); err == nil {
+					logger.Log.Info("Metric has been sent successfully")
+					break
+				}
+				t += 2
+			}
+			//
+
+
+
+
 		}
 		logger.Log.Info("Metric has been sent successfully")
 	}
