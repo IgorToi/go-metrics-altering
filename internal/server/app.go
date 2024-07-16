@@ -228,6 +228,7 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			}
 			resp.Value = res.Value
 		} else {
+			fmt.Println("AMERICA")
 			logger.Log.Debug("unsupported metric name", zap.String("name", req.ID))
 			w.WriteHeader(http.StatusNotFound)
 			return
