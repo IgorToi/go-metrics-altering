@@ -45,28 +45,43 @@ func main() {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			logger.Log.Info("Metric has been sent successfully")
+
+
+
 			// Varint 2 with DB
-			metricGauge := models.Metrics{
-				ID:    i,
-				MType: config.GaugeType,
-				Value: &v,
-			}
-			metrics = append(metrics, metricGauge)
+			// metricGauge := models.Metrics{
+			// 	ID:    i,
+			// 	MType: config.GaugeType,
+			// 	Value: &v,
+			// }
+			// metrics = append(metrics, metricGauge)
+			// delta := int64(cfg.Count)
+			// metricCounter := models.Metrics{
+			// 	ID:    config.PollCount,
+			// 	MType: config.CountType,
+			// 	Delta: &delta,
+			// }
+			// metrics = append(metrics, metricCounter)
+
+			var metric models.Metrics
+			metric.ID = i
+			metric.MType = config.GaugeType
+			metric.Value = &v
+			metrics = append(metrics, metric)
+
+			metric = models.Metrics{}
 			delta := int64(cfg.Count)
-			metricCounter := models.Metrics{
-				ID:    config.PollCount,
-				MType: config.CountType,
-				Delta: &delta,
-			}
-			metrics = append(metrics, metricCounter)
+			metric.ID = config.PollCount
+			metric.MType = config.CountType
+			metric.Delta = &delta
+			metrics = append(metrics, metric)
+
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
 			_, err = req.SetBody(metricsJSON).SetHeader("Content-Type", "application/json").Post(req.URL + "/updates/")
 			if err != nil {
-				// urlErr := err.(*url.Error)
-				// if urlErr != nil {
 				// attempt to send metric again
 					logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 					for n, t := 1, 1; n <= 3; n++ {
