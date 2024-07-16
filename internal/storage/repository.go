@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
@@ -19,10 +20,9 @@ const (
 )
 
 var (
-    ErrMetricNotFound = errors.New("metric not found")
-    ErrSQLExecution   = errors.New("sql query execution failed")
+	ErrMetricNotFound = errors.New("metric not found")
+	ErrSQLExecution   = errors.New("sql query execution failed")
 )
-
 
 type Repository struct {
 	conn *sql.DB
@@ -38,7 +38,19 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	dbDSN := cfg.FlagDBDSN
 	conn, err := sql.Open("pgx", dbDSN)
 	if err != nil {
+
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
+		//
+		for n, t := 1, 1; n <= 3; n++ {
+			time.Sleep(time.Duration(t) * time.Second)
+			if _, err = sql.Open("pgx", dbDSN); err == nil {
+				logger.Log.Info("Conn opened successfully")
+				break
+			}
+			t += 2
+		}
+		//
+
 	}
 	rep := NewRepository(conn)
 	ctx, cancel := context.WithCancel(c)

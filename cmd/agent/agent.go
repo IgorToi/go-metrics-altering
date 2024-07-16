@@ -48,7 +48,7 @@ func main() {
 						}
 						t += 2
 					}
-				} 
+				}
 				//
 			}
 			logger.Log.Info("Metric has been sent successfully")
@@ -82,13 +82,8 @@ func main() {
 						}
 						t += 2
 					}
-				}	
+				}
 				//
-
-
-
-
-
 
 			}
 		}
@@ -116,9 +111,6 @@ func main() {
 				}
 			}
 			//
-
-
-
 
 		}
 		logger.Log.Info("Metric has been sent successfully")
