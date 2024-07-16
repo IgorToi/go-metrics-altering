@@ -34,21 +34,20 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	dbDSN := cfg.FlagDBDSN
 	_, err := sql.Open("pgx", dbDSN)
 	if err != nil {
-					//
-					if err, ok := err.(*pq.Error); ok {
-						if pgerrcode.IsConnectionException(string(err.Code)) {
-							for n, t := 1, 1; n <= 3; n++ {
-								time.Sleep(time.Duration(t) * time.Second)
-								var e error
-								if _, e = sql.Open("pgx", dbDSN);
-								e == nil {
-									break
-								}
-								t += 2
-							}
-						}
+		//
+		if err, ok := err.(*pq.Error); ok {
+			if pgerrcode.IsConnectionException(string(err.Code)) {
+				for n, t := 1, 1; n <= 3; n++ {
+					time.Sleep(time.Duration(t) * time.Second)
+					var e error
+					if _, e = sql.Open("pgx", dbDSN); e == nil {
+						break
 					}
-					//
+					t += 2
+				}
+			}
+		}
+		//
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
 	}
 	conn, _ := sql.Open("pgx", dbDSN)
@@ -102,15 +101,14 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 			if err, ok := err.(*pq.Error); ok {
 				if pgerrcode.IsConnectionException(string(err.Code)) {
 					for n, t := 1, 1; n <= 3; n++ {
-                        time.Sleep(time.Duration(t) * time.Second)
-						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue);
-						err == nil {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue); err == nil {
 							break
 						}
 						t += 2
 					}
 				}
-			//
+				//
 			}
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
 			return err
@@ -122,15 +120,14 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 			if err, ok := err.(*pq.Error); ok {
 				if pgerrcode.IsConnectionException(string(err.Code)) {
 					for n, t := 1, 1; n <= 3; n++ {
-                        time.Sleep(time.Duration(t) * time.Second)
-						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue);
-						err == nil {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue); err == nil {
 							break
 						}
 						t += 2
 					}
 				}
-			//
+				//
 			}
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
@@ -144,12 +141,38 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 	case GaugeType:
 		_, err := rep.conn.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
+			//
+			if err, ok := err.(*pq.Error); ok {
+				if pgerrcode.IsConnectionException(string(err.Code)) {
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName); err == nil {
+							break
+						}
+						t += 2
+					}
+				}
+			//
+			}
 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
 			return err
 		}
 	case CountType:
 		_, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
 		if err != nil {
+			//
+			if err, ok := err.(*pq.Error); ok {
+				if pgerrcode.IsConnectionException(string(err.Code)) {
+					for n, t := 1, 1; n <= 3; n++ {
+						time.Sleep(time.Duration(t) * time.Second)
+						if _, err := rep.conn.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName); err == nil {
+							break
+						}
+						t += 2
+					}
+				}
+			//
+			}
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
 			return err
 		}
