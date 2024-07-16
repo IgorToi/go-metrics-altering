@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -187,6 +188,7 @@ func (app *app) getAllmetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("ВЫЗОВ №1")
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -217,7 +219,7 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 			}
 			resp.Value = res.Value
 		} else {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+			logger.Log.Debug("unsupported metric name", zap.String("name", req.ID))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

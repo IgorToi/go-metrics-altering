@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -113,6 +114,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 // v2 with requst body
 func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("ВЫЗОВ №2")
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
