@@ -64,16 +64,16 @@ func Save(fname string, metricSlice []models.Metrics) error {
 	}
 	err = os.WriteFile(fname, data, 0606)
 	//
-	if os.IsTimeout(err) {
-		for n, t := 1, 1; n <= 3; n++ {
-			time.Sleep(time.Duration(t) * time.Second)
-			if err = os.WriteFile(fname, data, 0606); err == nil {
-				logger.Log.Info("Metrics saved successfully")
-				break
-			}
-			t += 2
-		}
-	}
+	// if os.IsTimeout(err) {
+	// 	for n, t := 1, 1; n <= 3; n++ {
+	// 		time.Sleep(time.Duration(t) * time.Second)
+	// 		if err = os.WriteFile(fname, data, 0606); err == nil {
+	// 			logger.Log.Info("Metrics saved successfully")
+	// 			break
+	// 		}
+	// 		t += 2
+	// 	}
+	// }
 	//
 
 	return err
