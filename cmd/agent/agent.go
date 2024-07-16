@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -54,7 +53,6 @@ func main() {
 			metric.Delta = &delta
 			metrics = append(metrics, metric)
 			metricsJSON, err := json.Marshal(metrics)
-			fmt.Println(metricsJSON)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
 			}
