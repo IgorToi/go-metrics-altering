@@ -40,18 +40,20 @@ func main() {
 			}
 			logger.Log.Info("Metric has been sent successfully")
 
-			var metric models.Metrics
-			metric.ID = i
-			metric.MType = config.GaugeType
-			metric.Value = &v
-			metrics = append(metrics, metric)
+			// var metric models.Metrics
+			// metric.ID = i
+			// metric.MType = config.GaugeType
+			// metric.Value = &v
+			// metrics = append(metrics, metric)
 
-			metric = models.Metrics{}
-			delta := int64(cfg.Count)
-			metric.ID = config.PollCount
-			metric.MType = config.CountType
-			metric.Delta = &delta
-			metrics = append(metrics, metric)
+			// metric = models.Metrics{}
+			// delta := int64(cfg.Count)
+			// metric.ID = config.PollCount
+			// metric.MType = config.CountType
+			// metric.Delta = &delta
+			//metrics = append(metrics, metric)
+			
+			metrics := prepareMetricBody(cfg, i)
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
 				logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
