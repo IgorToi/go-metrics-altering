@@ -22,15 +22,15 @@ const (
 )
 
 type ConfigAgent struct {
-	FlagRunAddr        	string
-	FlagReportInterval 	int
-	FlagPollInterval   	int
-	FlagLogLevel		string	
-	Rtm                	runtime.MemStats
-	Memory             	map[string]float64
-	Count              	int
-	PauseDuration		time.Duration 		// Time agent will wait to send metrics again
-	URL					string
+	FlagRunAddr        string
+	FlagReportInterval int
+	FlagPollInterval   int
+	FlagLogLevel       string
+	Rtm                runtime.MemStats
+	Memory             map[string]float64
+	Count              int
+	PauseDuration      time.Duration // Time agent will wait to send metrics again
+	URL                string
 }
 
 func LoadConfig() (*ConfigAgent, error) {

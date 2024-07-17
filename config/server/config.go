@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"html/template"
 	"os"
 	"strconv"
@@ -14,6 +15,7 @@ const (
 	PollCount = "PollCount"
 )
 
+var errCfgVarEmpty = errors.New("configs variable not set")
 type ConfigServer struct {
 	FlagRunAddr       string
 	Template          *template.Template
@@ -25,6 +27,8 @@ type ConfigServer struct {
 }
 
 func LoadConfig() (*ConfigServer, error) {
+	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
+    				`localhost`, `postgres`, `Igor109112`, `metrics`)
 	cfg := new(ConfigServer)
 	var err error
 	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
@@ -32,7 +36,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
 	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
-	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
+	flag.StringVar(&cfg.FlagDBDSN, "d", ps, "string with DB DSN")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
@@ -63,9 +67,8 @@ func LoadConfig() (*ConfigServer, error) {
 		cfg.FlagRestore = v
 	}
 	// check if any config variables is empty
-	var cfgVarEmpty = errors.New("configs variable not set")
 	if !cfg.validate() {
-		return nil, cfgVarEmpty
+		return nil, errCfgVarEmpty
 	}
 	return cfg, err
 }

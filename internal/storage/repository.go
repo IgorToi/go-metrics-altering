@@ -33,6 +33,12 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	if err != nil {
 		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
 	}
+	err = conn.Ping()
+	if err != nil {
+		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
+	}
+	logger.Log.Info("Successfully connected to database")
+
 	rep := NewRepository(conn)
 	ctx, cancel := context.WithCancel(c)
 	defer cancel()
