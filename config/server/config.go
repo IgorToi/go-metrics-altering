@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"html/template"
 	"os"
 	"strconv"
@@ -27,8 +26,7 @@ type ConfigServer struct {
 }
 
 func LoadConfig() (*ConfigServer, error) {
-	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-    				`localhost`, `postgres`, `Igor109112`, `metrics`)
+	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)		
 	cfg := new(ConfigServer)
 	var err error
 	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
@@ -36,7 +34,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
 	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
-	flag.StringVar(&cfg.FlagDBDSN, "d", ps, "string with DB DSN")
+	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
