@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -12,38 +13,84 @@ import (
 	"go.uber.org/zap"
 )
 
-func SendMetric(requestURL, metricType, metricName, metricValue string, req *resty.Request) (*resty.Response, error) {
-    return req.Post(req.URL + "/update/{metricType}/{metricName}/{metricValue}")
+func RunAgent() {
+    cfg, err := config.LoadConfig()
+    if err != nil {
+        logger.Log.Fatal("error while logading config", zap.Error(err))
+    }
+    if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
+        logger.Log.Fatal("error while initializing logger", zap.Error(err))
+    }
+    // updating metrics in memory every pollInterval
+    go cfg.UpdateMetrics()
+    // v2 - metrics in body json
+    go sendMetricsInJSON(cfg)
+    // v1 - metrics in url path
+    sendMetricsViaURL(cfg)
 }
 
-func PrepareMetricBodyNew(cfg *config.ConfigAgent, metricName string) models.Metrics {
-    var metric models.Metrics
-    switch metricName {
-    case config.PollCount:
-        valueDelta := int64(cfg.Count)
-        metric = models.Metrics{
-            ID:    config.PollCount,
-            MType: config.CountType,
-            Delta: &valueDelta,
-        }
-    default:
-        valueGauge := cfg.Memory[metricName]
-        metric = models.Metrics{
-            ID:    metricName,
-            MType: config.GaugeType,
-            Value: &valueGauge,
-        }
-    }
+func sendMetricsViaURL(cfg *config.ConfigAgent) {
+// http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
     agent := resty.New()
+    for {
+        time.Sleep(cfg.PauseDuration)
+        for i := range cfg.Memory {
+            sendGaugeURLPath(cfg, agent, i)
+        }
+        sendCounterURLPath(cfg, agent)
+        logger.Log.Info("Metric has been sent successfully")
+    }
+}
+
+func sendCounterURLPath(cfg *config.ConfigAgent, agent *resty.Client) {
+    _, err := agent.R().SetPathParams(map[string]string{
+        "metricType":  config.CountType,
+        "metricName":  config.PollCount,
+        "metricValue": strconv.Itoa(cfg.Count),
+    }).SetHeader("Content-Type", "text/plain").Post(cfg.URL + "/update/{metricType}/{metricName}/{metricValue}")
+    if err != nil {
+        logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+    }
+}
+
+func sendGaugeURLPath(cfg *config.ConfigAgent, agent *resty.Client, metricName string) {
+    _, err := agent.R().SetPathParams(map[string]string{
+        "metricType":  config.GaugeType,
+        "metricName": metricName,
+        "metricValue": strconv.FormatFloat(cfg.Memory[metricName], 'f', 6, 64),
+    }).SetHeader("Content-Type", "text/plain").Post(cfg.URL + "/update/{metricType}/{metricName}/{metricValue}")
+    if err != nil {
+        logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+    }
+}
+
+func sendMetricsInJSON(cfg *config.ConfigAgent) {
+    agent := resty.New()
+    for {
+        time.Sleep(cfg.PauseDuration)
+        for i := range cfg.Memory {
+            SendGaugeInJSON(cfg, i, agent)
+        }
+        SendCounterInJSON(cfg, agent)
+    }
+}
+
+func SendGaugeInJSON(cfg *config.ConfigAgent, metricName string, agent *resty.Client) {
+    valueGauge := cfg.Memory[metricName]
+    metric := models.Metrics{
+        ID:    metricName,
+        MType: config.GaugeType,
+        Value: &valueGauge,
+    }
     req := agent.R().SetHeader("Content-Type", "application/json")
-    req.URL = config.ProtocolScheme + cfg.FlagRunAddr
     metricsJSON, err := json.Marshal(metric)
     if err != nil {
         logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
     }
-    req.URL = req.URL + "/update/"
+    req.URL = cfg.URL + "/update/"
     _, err = req.SetBody(metricsJSON).Post(req.URL)
     if err != nil {
+        //send again n times if timeout error
         if os.IsTimeout(err) {
             for n, t := 1, 1; n <= 3; n++ {
                 time.Sleep(time.Duration(t) * time.Second)
@@ -55,22 +102,33 @@ func PrepareMetricBodyNew(cfg *config.ConfigAgent, metricName string) models.Met
         }
         logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
     }
-    return metric
 }
 
-func SendAllMetrics(cfg *config.ConfigAgent) {
-    var metrics []models.Metrics
-    agent := resty.New()
+func SendCounterInJSON(cfg *config.ConfigAgent, agent *resty.Client) {
+    valueDelta := int64(cfg.Count)
+    metric := models.Metrics{
+        ID:    config.PollCount,
+        MType: config.CountType,
+        Delta: &valueDelta,
+    }
     req := agent.R().SetHeader("Content-Type", "application/json")
-    req.URL = config.ProtocolScheme + cfg.FlagRunAddr
-    durationPause := time.Duration(cfg.FlagReportInterval) * time.Second
-    for {
-        metrics = metrics[:0]
-        time.Sleep(durationPause)
-        for i := range cfg.Memory {
-            _ = PrepareMetricBodyNew(cfg, i)
-            _ = PrepareMetricBodyNew(cfg, config.PollCount)
+    metricsJSON, err := json.Marshal(metric)
+    if err != nil {
+        logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
+    }
+    req.URL = cfg.URL + "/update/"
+    _, err = req.SetBody(metricsJSON).Post(req.URL)
+    if err != nil {
+        //send again n times if timeout error
+        if os.IsTimeout(err) {
+            for n, t := 1, 1; n <= 3; n++ {
+                time.Sleep(time.Duration(t) * time.Second)
+                if _, err = req.Post(req.URL); err == nil {
+                    break
+                }
+                t += 2
+            }
         }
+        logger.Log.Debug("unexpected sending metric error:", zap.Error(err))
     }
 }
-

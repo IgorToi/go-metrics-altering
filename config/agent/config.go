@@ -22,13 +22,15 @@ const (
 )
 
 type ConfigAgent struct {
-	FlagRunAddr        string
-	FlagReportInterval int
-	FlagPollInterval   int
+	FlagRunAddr        	string
+	FlagReportInterval 	int
+	FlagPollInterval   	int
 	FlagLogLevel		string	
-	Rtm                runtime.MemStats
-	Memory             map[string]float64
-	Count              int
+	Rtm                	runtime.MemStats
+	Memory             	map[string]float64
+	Count              	int
+	PauseDuration		time.Duration 		// Time agent will wait to send metrics again
+	URL					string
 }
 
 func LoadConfig() (*ConfigAgent, error) {
@@ -58,6 +60,8 @@ func LoadConfig() (*ConfigAgent, error) {
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
 		cfg.FlagLogLevel = envLogLevel
 	}
+	cfg.PauseDuration = time.Duration(cfg.FlagReportInterval) * time.Second
+	cfg.URL = ProtocolScheme + cfg.FlagRunAddr
 	return cfg, err
 }
 

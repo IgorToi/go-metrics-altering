@@ -31,7 +31,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
-	flag.BoolVar(&cfg.FlagRestore, "r", true, "true if load from backup is needed")
+	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
