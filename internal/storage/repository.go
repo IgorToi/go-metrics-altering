@@ -52,10 +52,10 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 		logger.Log.Fatal("error while starting Tx", zap.Error(err))
 	}
 	defer tx.Rollback()
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value bigint, primary key(name);")
-	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value DOUBLE PRECISION, primary key(name));")
+	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL, name TEXT NOT NULL,"+
+		"type TEXT NOT NULL, value bigint, primary key(id, name);")
+	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL, name TEXT NOT NULL,"+
+		"type TEXT NOT NULL, value DOUBLE PRECISION, primary key(id, name));")
 	tx.Commit()
 	return rep
 }
