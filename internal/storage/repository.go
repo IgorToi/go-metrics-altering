@@ -53,9 +53,9 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	}
 	defer tx.Rollback()
 	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value bigint);")
+		"type TEXT NOT NULL, value bigint, primary key(name);")
 	tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS gauges (id SERIAL PRIMARY KEY, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value DOUBLE PRECISION);")
+		"type TEXT NOT NULL, value DOUBLE PRECISION, primary key(name));")
 	tx.Commit()
 	return rep
 }
