@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -27,12 +29,22 @@ func routerDB(ctx context.Context, cfg *config.ConfigServer) chi.Router {
 	app := newApp(repo)
 	t = templates.ParseTemplate()
 	r := chi.NewRouter()
-	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(repo.Ping))))
+	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(app.Ping))))
 	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(app.getAllmetrics))))
 	r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updateMetric))))
 	r.Post("/updates/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updates))))
 	r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(app.getMetric))))
 	return r
+}
+
+func (app *app) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	err := app.storage.Ping(ctx)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (app *app) updates(w http.ResponseWriter, r *http.Request) {
@@ -59,14 +71,14 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		}
 		switch metric.MType {
 		case config.GaugeType:
-			err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Value)
+			err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Value)
 			if err != nil {
 				logger.Log.Debug("error while updating value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		case config.CountType:
-			err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Delta)
+			err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Delta)
 			if err != nil {
 				logger.Log.Debug("error while updating value", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -101,14 +113,14 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	switch req.MType {
 	case config.GaugeType:
-		err := app.storage.Add(ctx, req.MType, req.ID, req.Value)
+		err := app.storage.Update(ctx, req.MType, req.ID, req.Value)
 		if err != nil {
 			logger.Log.Debug("error while updating value", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	case config.CountType:
-		err := app.storage.Add(ctx, req.MType, req.ID, req.Delta)
+		err := app.storage.Update(ctx, req.MType, req.ID, req.Delta)
 		if err != nil {
 			logger.Log.Debug("error while updating value", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
@@ -168,17 +180,31 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 	case config.GaugeType:
 		res, err := app.storage.Get(ctx, req.MType, req.ID)
 		if err != nil {
-			logger.Log.Debug("error while obtaining metric", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				logger.Log.Debug("error while obtaining metric", zap.Error(err))
+				w.WriteHeader(http.StatusNotFound)
+				return
+			default:
+				logger.Log.Debug("error while obtaining metric", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 		resp.Value = res.Value
 	case config.CountType:
 		res, err := app.storage.Get(ctx, req.MType, req.ID)
 		if err != nil {
-			logger.Log.Debug("error while obtaining metric", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				logger.Log.Debug("error while obtaining metric", zap.Error(err))
+				w.WriteHeader(http.StatusNotFound)
+				return
+			default:
+				logger.Log.Debug("error while obtaining metric", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 		resp.Delta = res.Delta
 	}
