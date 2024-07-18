@@ -59,42 +59,18 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 		}
 		switch metric.MType {
 		case config.GaugeType:
-			//check if metric already exists in db
-			if app.storage.Exist(ctx, metric.MType, metric.ID) {
-				// if exists - update
-				err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Value)
-				if err != nil {
-					logger.Log.Debug("error while updating value", zap.Error(err))
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-			} else {
-				// if not exists - add
-				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Value)
-				if err != nil {
-					logger.Log.Debug("error while adding value", zap.Error(err))
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+			err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Value)
+			if err != nil {
+				logger.Log.Debug("error while updating value", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		case config.CountType:
-			//check if metric already exists in db
-			if app.storage.Exist(ctx, metric.MType, metric.ID) {
-				err := app.storage.Update(ctx, metric.MType, metric.ID, metric.Delta)
-				// if exists - update
-				if err != nil {
-					logger.Log.Debug("error while updating value", zap.Error(err))
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-			} else {
-				// if not exists - add
-				err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Delta)
-				if err != nil {
-					logger.Log.Debug("error while adding value", zap.Error(err))
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+			err := app.storage.Add(ctx, metric.MType, metric.ID, metric.Delta)
+			if err != nil {
+				logger.Log.Debug("error while updating value", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		}
 	}
@@ -125,37 +101,18 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	switch req.MType {
 	case config.GaugeType:
-		if app.storage.Exist(ctx, req.MType, req.ID) {
-			err := app.storage.Update(ctx, req.MType, req.ID, req.Value)
-			if err != nil {
-				logger.Log.Debug("error while updating value", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			err := app.storage.Add(ctx, req.MType, req.ID, req.Value)
-			if err != nil {
-				logger.Log.Debug("error while adding value", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+		err := app.storage.Add(ctx, req.MType, req.ID, req.Value)
+		if err != nil {
+			logger.Log.Debug("error while updating value", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	case config.CountType:
-
-		if app.storage.Exist(ctx, req.MType, req.ID) {
-			err := app.storage.Update(ctx, req.MType, req.ID, req.Delta)
-			if err != nil {
-				logger.Log.Debug("error while updating value", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
-			err := app.storage.Add(ctx, req.MType, req.ID, req.Delta)
-			if err != nil {
-				logger.Log.Debug("error while adding value", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+		err := app.storage.Add(ctx, req.MType, req.ID, req.Delta)
+		if err != nil {
+			logger.Log.Debug("error while updating value", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 	resp := models.Metrics{
@@ -209,33 +166,21 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	switch req.MType {
 	case config.GaugeType:
-		if app.storage.Exist(ctx, req.MType, req.ID) {
-			res, err := app.storage.Get(ctx, req.MType, req.ID)
-			if err != nil {
-				logger.Log.Debug("error while obtaining metric", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			resp.Value = res.Value
-		} else {
-			logger.Log.Debug("unsupported metric name", zap.String("name", req.ID))
-			w.WriteHeader(http.StatusNotFound)
+		res, err := app.storage.Get(ctx, req.MType, req.ID)
+		if err != nil {
+			logger.Log.Debug("error while obtaining metric", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		resp.Value = res.Value
 	case config.CountType:
-		if app.storage.Exist(ctx, req.MType, req.ID) {
-			res, err := app.storage.Get(ctx, req.MType, req.ID)
-			if err != nil {
-				logger.Log.Debug("error while obtaining metric", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			resp.Delta = res.Delta
-		} else {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
-			w.WriteHeader(http.StatusNotFound)
+		res, err := app.storage.Get(ctx, req.MType, req.ID)
+		if err != nil {
+			logger.Log.Debug("error while obtaining metric", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		resp.Delta = res.Delta
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Add("Content-Encoding", "gzip")

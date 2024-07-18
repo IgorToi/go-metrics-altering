@@ -60,25 +60,25 @@ func InitPostgresRepo(c context.Context, cfg *config.ConfigServer) *Repository {
 	return rep
 }
 
-func (rep *Repository) Exist(ctx context.Context, metricType string, metricName string) bool {
-	switch metricType {
-	case GaugeType:
-		var exists bool
-		row := rep.conn.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = $1)", metricName)
-		if err := row.Scan(&exists); err != nil {
-			logger.Log.Fatal("error while checking existence", zap.Error(err))
-		}
-		return exists
-	case CountType:
-		var exists bool
-		row := rep.conn.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = $1)", metricName)
-		if err := row.Scan(&exists); err != nil {
-			logger.Log.Fatal("error while checking existence", zap.Error(err))
-		}
-		return exists
-	}
-	return false
-}
+// func (rep *Repository) Exist(ctx context.Context, metricType string, metricName string) bool {
+// 	switch metricType {
+// 	case GaugeType:
+// 		var exists bool
+// 		row := rep.conn.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM gauges WHERE name = $1)", metricName)
+// 		if err := row.Scan(&exists); err != nil {
+// 			logger.Log.Fatal("error while checking existence", zap.Error(err))
+// 		}
+// 		return exists
+// 	case CountType:
+// 		var exists bool
+// 		row := rep.conn.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM counters WHERE name = $1)", metricName)
+// 		if err := row.Scan(&exists); err != nil {
+// 			logger.Log.Fatal("error while checking existence", zap.Error(err))
+// 		}
+// 		return exists
+// 	}
+// 	return false
+// }
 
 func (rep *Repository) Add(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	tx, err := rep.conn.Begin()
@@ -87,14 +87,16 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 	}
 	switch metricType {
 	case GaugeType:
-		_, err := tx.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)", metricName, GaugeType, metricValue)
+		_, err := tx.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)"+
+			"ON CONFLICT (name) DO UPDATE SET value = $3", metricName, GaugeType, metricValue)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving gauge metric to the db", zap.Error(err))
 			return err
 		}
 	case CountType:
-		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)", metricName, CountType, metricValue)
+		_, err := tx.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)"+
+			"ON CONFLICT (name) DO UPDATE SET value = $3", metricName, CountType, metricValue)
 		if err != nil {
 			tx.Rollback()
 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
@@ -104,29 +106,29 @@ func (rep *Repository) Add(ctx context.Context, metricType string, metricName st
 	return tx.Commit()
 }
 
-func (rep *Repository) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	tx, err := rep.conn.Begin()
-	if err != nil {
-		logger.Log.Debug("error while strarting tx", zap.Error(err))
-	}
-	switch metricType {
-	case GaugeType:
-		_, err := tx.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
-		if err != nil {
-			tx.Rollback()
-			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
-			return err
-		}
-	case CountType:
-		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
-		if err != nil {
-			tx.Rollback()
-			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
-			return err
-		}
-	}
-	return tx.Commit()
-}
+// func (rep *Repository) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
+// 	tx, err := rep.conn.Begin()
+// 	if err != nil {
+// 		logger.Log.Debug("error while strarting tx", zap.Error(err))
+// 	}
+// 	switch metricType {
+// 	case GaugeType:
+// 		_, err := tx.ExecContext(ctx, "UPDATE gauges SET value = $1 WHERE name = $2", metricValue, metricName)
+// 		if err != nil {
+// 			tx.Rollback()
+// 			logger.Log.Fatal("error while updating counter metric", zap.Error(err))
+// 			return err
+// 		}
+// 	case CountType:
+// 		_, err := tx.ExecContext(ctx, "UPDATE counters SET value = value + $1 WHERE name = $2", metricValue, metricName)
+// 		if err != nil {
+// 			tx.Rollback()
+// 			logger.Log.Fatal("error while saving counter metric to the db", zap.Error(err))
+// 			return err
+// 		}
+// 	}
+// 	return tx.Commit()
+// }
 
 func (rep *Repository) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
 	var metric models.Metrics

@@ -15,6 +15,7 @@ const (
 )
 
 var errCfgVarEmpty = errors.New("configs variable not set")
+
 type ConfigServer struct {
 	FlagRunAddr       string
 	Template          *template.Template
@@ -26,7 +27,7 @@ type ConfigServer struct {
 }
 
 func LoadConfig() (*ConfigServer, error) {
-	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)		
+	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 	var err error
 	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
