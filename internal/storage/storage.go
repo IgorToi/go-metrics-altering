@@ -1,9 +1,9 @@
 package storage
 
 import (
-    "context"
+	"context"
 
-    "github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/igortoigildin/go-metrics-altering/internal/models"
 )
 
 type Storage interface {

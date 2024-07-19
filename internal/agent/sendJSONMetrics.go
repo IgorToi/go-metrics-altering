@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"os"
 	"time"
@@ -38,14 +40,26 @@ func SendJSONGauge(cfg *config.ConfigAgent, metricName string) error {
 		MType: config.GaugeType,
 		Value: &valueGauge,
 	}
-	req := agent.R().SetHeader("Content-Type", "application/json")
+	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip")
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Debug("marshalling json error:", zap.Error(err))
 		return err
 	}
 	req.Method = resty.MethodPost
-	_, err = req.SetBody(metricsJSON).Post(cfg.URL + "/update/")
+	var compressedRequest bytes.Buffer
+	writer := gzip.NewWriter(&compressedRequest)
+	_, err = writer.Write(metricsJSON)
+	if err != nil {
+		logger.Log.Debug("error while compressing request:", zap.Error(err))
+		return err
+	}
+	err = writer.Close()
+	if err != nil {
+		logger.Log.Debug("error while closing gzip writer:", zap.Error(err))
+		return err
+	}
+	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + "/update/")
 	if err != nil {
 		// send again n times if timeout error
 		switch {
@@ -74,13 +88,25 @@ func SendJSONCounter(cfg *config.ConfigAgent) error {
 		MType: config.CountType,
 		Delta: &valueDelta,
 	}
-	req := agent.R().SetHeader("Content-Type", "application/json")
+	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip")
 	metricJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Debug("marshalling json error:", zap.Error(err))
 		return err
 	}
-	_, err = req.SetBody(metricJSON).Post(cfg.URL + "/update/")
+	var compressedRequest bytes.Buffer
+	writer := gzip.NewWriter(&compressedRequest)
+	_, err = writer.Write(metricJSON)
+	if err != nil {
+		logger.Log.Debug("error while compressing request:", zap.Error(err))
+		return err
+	}
+	err = writer.Close()
+	if err != nil {
+		logger.Log.Debug("error while closing gzip writer:", zap.Error(err))
+		return err
+	}
+	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + "/update/")
 	if err != nil {
 		// send again n times if timeout error
 		switch {

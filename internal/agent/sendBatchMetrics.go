@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"os"
 	"time"
@@ -42,14 +44,25 @@ func sendBatchMetrics(cfg *config.ConfigAgent) {
 }
 
 func sendAllMetrics(cfg *config.ConfigAgent, metrics []models.Metrics, agent *resty.Client) error {
-	req := agent.R().SetHeader("Content-Type", "application/json")
+	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip")
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
 		logger.Log.Debug("marshalling json error:", zap.Error(err))
 		return err
 	}
-	req.URL = cfg.URL + "/updates/"
-	_, err = req.SetBody(metricsJSON).Post(req.URL)
+	var compressedRequest bytes.Buffer
+	writer := gzip.NewWriter(&compressedRequest)
+	_, err = writer.Write(metricsJSON)
+	if err != nil {
+		logger.Log.Debug("error while compressing request:", zap.Error(err))
+		return err
+	}
+	err = writer.Close()
+	if err != nil {
+		logger.Log.Debug("error while closing gzip writer:", zap.Error(err))
+		return err
+	}
+	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + "/updates/")
 	if err != nil {
 		//send again n times if timeout error
 		switch {
