@@ -58,4 +58,3 @@ func LoadConfig() (*ConfigAgent, error) {
 	cfg.URL = ProtocolScheme + cfg.FlagRunAddr
 	return cfg, err
 }
-
