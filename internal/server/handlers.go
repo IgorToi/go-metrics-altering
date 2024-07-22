@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,12 +12,13 @@ import (
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/templates"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 
 var t *template.Template
 
-func MetricRouter(cfg *config.ConfigServer) chi.Router {
+func MetricRouter(cfg *config.ConfigServer, ctx context.Context) chi.Router {
 	var m = InitStorage()
 	// if flag restore is true - load metrics from the local file
 	if cfg.FlagRestore {
@@ -30,6 +32,8 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 	// parse template
 	t = templates.ParseTemplate()
 	r := chi.NewRouter()
+	DB := InitRepo(ctx, cfg)
+	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(DB.Ping))))
 	// v1
 	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandle))))
 	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(m.InformationHandle))))
@@ -42,6 +46,17 @@ func MetricRouter(cfg *config.ConfigServer) chi.Router {
 		r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandler))))
 	})
 	return r
+}
+
+func (rep *DB) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := rep.conn.PingContext(ctx); err != nil {
+		logger.Log.Info("error", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rep.conn.Close()
+	w.WriteHeader(http.StatusOK)
 }
 
 // v2 with requst body
@@ -70,6 +85,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case config.CountType:
 		m.Counter[config.PollCount] += *req.Delta
 	}
+
 	var resp models.Metrics
 	delta := m.Counter[config.PollCount]
 	if delta == 0 {

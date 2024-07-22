@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"os"
 	"time"
@@ -10,6 +12,27 @@ import (
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"go.uber.org/zap"
 )
+
+type DB struct {
+	conn *sql.DB
+}
+
+func NewDB(conn *sql.DB) *DB {
+	return &DB{
+		conn: conn,
+	}
+}
+
+func InitRepo(c context.Context, cfg *config.ConfigServer) *DB {
+	dbDSN := cfg.FlagDBDSN
+	conn, err := sql.Open("pgx", dbDSN)
+	if err != nil {
+		logger.Log.Fatal("error while connecting to DB", zap.Error(err))
+	}
+	return &DB{
+		conn: conn,
+	}
+}
 
 // iterate through memStorage
 func (m MemStorage) ConvertToSlice() []models.Metrics {
