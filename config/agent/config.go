@@ -24,6 +24,7 @@ type ConfigAgent struct {
 	FlagReportInterval int
 	FlagPollInterval   int
 	FlagLogLevel       string
+	FlagHashKey        string
 	PauseDuration      time.Duration // Time agent will wait to send metrics again
 	URL                string
 }
@@ -35,9 +36,13 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent to the server")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
+	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
+	}
+	if envHashValue := os.Getenv("KEY"); envHashValue != "" {
+		cfg.FlagHashKey = envHashValue
 	}
 	if envRoportInterval := os.Getenv("REPORT_INTERVAL"); envRoportInterval != "" {
 		cfg.FlagReportInterval, err = strconv.Atoi(envRoportInterval)

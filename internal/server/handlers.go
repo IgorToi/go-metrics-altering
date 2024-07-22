@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -19,7 +22,7 @@ import (
 var t *template.Template
 
 func MetricRouter(cfg *config.ConfigServer, ctx context.Context) chi.Router {
-	var m = InitStorage()
+	var m = InitStorage(cfg)
 	// if flag restore is true - load metrics from the local file
 	if cfg.FlagRestore {
 		err := m.Load(cfg.FlagStorePath)
@@ -35,15 +38,15 @@ func MetricRouter(cfg *config.ConfigServer, ctx context.Context) chi.Router {
 	DB := InitRepo(ctx, cfg)
 	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(DB.Ping))))
 	// v1
-	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandle))))
-	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(m.InformationHandle))))
+	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.ValueHandle), cfg))))
+	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(auth(m.InformationHandle, cfg)))))
 
 	r.Route("/", func(r chi.Router) {
 		// v1
-		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandle))))
+		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.UpdateHandle), cfg))))
 		// v2
-		r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(m.UpdateHandler))))
-		r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(m.ValueHandler))))
+		r.Post("/update/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.UpdateHandler), cfg))))
+		r.Post("/value/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.ValueHandler), cfg))))
 	})
 	return r
 }
@@ -107,6 +110,20 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
+	//
+	if m.cfg.FlagHashKey != "" {
+		key := []byte(m.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		resp, _ := json.Marshal(resp)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
+		h.Write(resp)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	w.Header().Set("Content-Type", "application/json")
 	logger.Log.Debug("sending HTTP 200 response")
 }
@@ -154,6 +171,20 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
+	//
+	if m.cfg.FlagHashKey != "" {
+		key := []byte(m.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		resp, _ := json.Marshal(resp)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
+		h.Write(resp)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	logger.Log.Debug("sending HTTP 200 response")
 }
 
@@ -187,6 +218,15 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	//
+	if m.cfg.FlagHashKey != "" {
+		key := []byte(m.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(nil)
+		dst := h.Sum(nil)
+		rw.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 }
 
@@ -204,12 +244,32 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Log.Debug("error occured while sending response", zap.Error(err))
 		}
+		//
+		if m.cfg.FlagHashKey != "" {
+			key := []byte(m.cfg.FlagHashKey)
+			h := hmac.New(sha256.New, key)
+			resp := []byte(strconv.FormatFloat(m.GetGaugeMetricFromMemory(metricName), 'f', -1, 64))
+			h.Write(resp)
+			dst := h.Sum(nil)
+			rw.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+		}
+		//
 	case config.CountType:
 		if !m.CheckIfCountMetricPresent(metricName) {
 			rw.WriteHeader(http.StatusNotFound)
 			return
 		}
 		_, err := rw.Write([]byte(strconv.FormatInt(m.GetCountMetricFromMemory(metricName), 10)))
+		//
+		if m.cfg.FlagHashKey != "" {
+			key := []byte(m.cfg.FlagHashKey)
+			h := hmac.New(sha256.New, key)
+			resp := []byte(strconv.FormatInt(m.GetCountMetricFromMemory(metricName), 10))
+			h.Write(resp)
+			dst := h.Sum(nil)
+			rw.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+		}
+		//
 		if err != nil {
 			logger.Log.Debug("error occured while sending response", zap.Error(err))
 		}

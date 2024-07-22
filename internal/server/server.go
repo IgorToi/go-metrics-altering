@@ -12,6 +12,7 @@ import (
 type MemStorage struct {
 	Gauge   map[string]float64
 	Counter map[string]int64
+	cfg		*config.ConfigServer
 }
 
 func RunServer() {
@@ -38,11 +39,12 @@ func RunServer() {
 	}
 }
 
-func InitStorage() *MemStorage {
+func InitStorage(cfg *config.ConfigServer) *MemStorage {
 	var m MemStorage
 	m.Counter = make(map[string]int64)
 	m.Counter["PollCount"] = 0
 	m.Gauge = make(map[string]float64)
+	m.cfg = cfg
 	return &m
 }
 

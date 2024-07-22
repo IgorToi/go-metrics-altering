@@ -3,7 +3,10 @@ package memory
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -43,12 +46,21 @@ func (m *MemoryStats) SendBatchMetrics(cfg *config.ConfigAgent) {
 
 func sendAllMetrics(cfg *config.ConfigAgent, metrics []models.Metrics) error {
 	agent := resty.New()
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip").SetHeader("Accept-Encoding", "gzip")
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
 		logger.Log.Info("marshalling json error:", zap.Error(err))
 		return err
 	}
+	if cfg.FlagHashKey != "" {
+		key := []byte(cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(metricsJSON)
+		dst := h.Sum(nil)
+		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+
 	var compressedRequest bytes.Buffer
 	writer := gzip.NewWriter(&compressedRequest)
 	_, err = writer.Write(metricsJSON)

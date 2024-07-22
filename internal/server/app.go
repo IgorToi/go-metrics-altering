@@ -2,9 +2,12 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -18,22 +21,26 @@ import (
 
 type app struct {
 	storage storage.Storage
+	cfg     *config.ConfigServer
 }
 
-func newApp(s storage.Storage) *app {
-	return &app{storage: s}
+func newApp(s storage.Storage, cfg *config.ConfigServer) *app {
+	return &app{
+		storage: s,
+		cfg:     cfg,
+	}
 }
 
 func routerDB(ctx context.Context, cfg *config.ConfigServer) chi.Router {
 	repo := storage.InitPostgresRepo(ctx, cfg)
-	app := newApp(repo)
+	app := newApp(repo, cfg)
 	t = templates.ParseTemplate()
 	r := chi.NewRouter()
 	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(app.Ping))))
-	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(app.getAllmetrics))))
-	r.Post("/update/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updateMetric))))
-	r.Post("/updates/", WithLogging(gzipMiddleware(http.HandlerFunc(app.updates))))
-	r.Post("/value/", WithLogging(gzipMiddleware(http.HandlerFunc(app.getMetric))))
+	r.Get("/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.getAllmetrics), cfg))))
+	r.Post("/update/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.updateMetric), cfg))))
+	r.Post("/updates/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.updates), cfg))))
+	r.Post("/value/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.getMetric), cfg))))
 	return r
 }
 
@@ -86,6 +93,16 @@ func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	//
+	if app.cfg.FlagHashKey != "" {
+		key := []byte(app.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(nil)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
+
 	w.Header().Set("Content-Type", "application/json")
 	logger.Log.Debug("sending HTTP 200 response")
 }
@@ -138,6 +155,20 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
+	//
+	if app.cfg.FlagHashKey != "" {
+		key := []byte(app.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		resp, _ := json.Marshal(resp)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
+		h.Write(resp)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	w.Header().Set("Content-Type", "application/json")
 	logger.Log.Debug("sending HTTP 200 response")
 }
@@ -154,6 +185,15 @@ func (app *app) getAllmetrics(w http.ResponseWriter, r *http.Request) {
 	if err := t.Execute(w, metrics); err != nil {
 		logger.Log.Debug("error executing template", zap.Error(err))
 	}
+	//
+	if app.cfg.FlagHashKey != "" {
+		key := []byte(app.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(nil)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 }
 
 func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
@@ -215,5 +255,19 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
+	//
+	if app.cfg.FlagHashKey != "" {
+		key := []byte(app.cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		resp, _ := json.Marshal(resp)
+		if err := enc.Encode(resp); err != nil {
+			logger.Log.Debug("error encoding response", zap.Error(err))
+			return
+		}
+		h.Write(resp)
+		dst := h.Sum(nil)
+		w.Header().Set("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	logger.Log.Debug("sending HTTP 200 response")
 }

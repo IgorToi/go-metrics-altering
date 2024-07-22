@@ -3,7 +3,10 @@ package memory
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -18,19 +21,19 @@ func (m *MemoryStats) SendJSONMetrics(cfg *config.ConfigAgent) {
 	for {
 		time.Sleep(cfg.PauseDuration)
 		for i := range m.GaugeMetrics {
-			err := SendJSONGauge(i, cfg.URL, m.GaugeMetrics)
+			err := SendJSONGauge(i, cfg, m.GaugeMetrics)
 			if err != nil {
 				logger.Log.Info("unexpected sending json metric error:", zap.Error(err))
 			}
 		}
-		err := SendJSONCounter(m.CounterMetric, cfg.URL)
+		err := SendJSONCounter(m.CounterMetric, cfg)
 		if err != nil {
 			logger.Log.Info("unexpected sending json metric error:", zap.Error(err))
 		}
 	}
 }
 
-func SendJSONGauge(metricName string, url string, gaugeMetrics map[string]float64) error {
+func SendJSONGauge(metricName string, cfg *config.ConfigAgent, gaugeMetrics map[string]float64) error {
 	agent := resty.New()
 	valueGauge := gaugeMetrics[metricName]
 	metric := models.Metrics{
@@ -38,12 +41,23 @@ func SendJSONGauge(metricName string, url string, gaugeMetrics map[string]float6
 		MType: config.GaugeType,
 		Value: &valueGauge,
 	}
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
+		SetHeader("Accept-Encoding", "gzip")
+	
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Info("marshalling json error:", zap.Error(err))
 		return err
 	}
+	//
+	if cfg.FlagHashKey != "" {
+		key := []byte(cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(metricsJSON)
+		dst := h.Sum(nil)
+		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	req.Method = resty.MethodPost
 	var compressedRequest bytes.Buffer
 	writer := gzip.NewWriter(&compressedRequest)
@@ -57,7 +71,7 @@ func SendJSONGauge(metricName string, url string, gaugeMetrics map[string]float6
 		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
 		return err
 	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(url + "/update/")
+	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + "/update/")
 	if err != nil {
 		// send again n times if timeout error
 		switch {
@@ -78,7 +92,7 @@ func SendJSONGauge(metricName string, url string, gaugeMetrics map[string]float6
 	return nil
 }
 
-func SendJSONCounter(counter int, url string) error {
+func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 	agent := resty.New()
 	valueDelta := int64(counter)
 	metric := models.Metrics{
@@ -86,12 +100,22 @@ func SendJSONCounter(counter int, url string) error {
 		MType: config.CountType,
 		Delta: &valueDelta,
 	}
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
+		SetHeader("Accept-Encoding", "gzip")
 	metricJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Info("marshalling json error:", zap.Error(err))
 		return err
 	}
+	//
+	if cfg.FlagHashKey != "" {
+		key := []byte(cfg.FlagHashKey)
+		h := hmac.New(sha256.New, key)
+		h.Write(metricJSON)
+		dst := h.Sum(nil)
+		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
+	}
+	//
 	var compressedRequest bytes.Buffer
 	writer := gzip.NewWriter(&compressedRequest)
 	_, err = writer.Write(metricJSON)
@@ -104,7 +128,7 @@ func SendJSONCounter(counter int, url string) error {
 		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
 		return err
 	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(url + "/update/")
+	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + "/update/")
 	if err != nil {
 		// send again n times if timeout error
 		switch {
