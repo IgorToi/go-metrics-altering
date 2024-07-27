@@ -53,7 +53,7 @@ func sendAllMetrics(cfg *config.ConfigAgent, metrics []models.Metrics) error {
         logger.Log.Info("marshalling json error:", zap.Error(err))
         return err
     }
-    //
+    // signing metric value by sha256 and setting header accordingly
     if cfg.FlagHashKey != "" {
         key := []byte(cfg.FlagHashKey)
         h := hmac.New(sha256.New, key)
@@ -61,7 +61,6 @@ func sendAllMetrics(cfg *config.ConfigAgent, metrics []models.Metrics) error {
         dst := h.Sum(nil)
         req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
     }
-    //
     var compressedRequest bytes.Buffer
     writer := gzip.NewWriter(&compressedRequest)
     _, err = writer.Write(metricsJSON)

@@ -25,7 +25,8 @@ type ConfigAgent struct {
     FlagPollInterval   int
     FlagLogLevel       string
     FlagHashKey        string
-    PauseDuration      time.Duration // Time agent will wait to send metrics again
+    FlagRateLimit      int
+    PauseDuration      time.Duration // Time - agent will wait to send metrics again
     URL                string
 }
 
@@ -33,13 +34,20 @@ func LoadConfig() (*ConfigAgent, error) {
     cfg := new(ConfigAgent)
     var err error
     flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
-    flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
-    flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent to the server")
+    flag.StringVar(&cfg.FlagLogLevel, "u", "info", "log level")
+    flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent")
     flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
+    flag.IntVar(&cfg.FlagRateLimit, "l", 3, "rate limit")
     flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
     flag.Parse()
     if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
         cfg.FlagRunAddr = envRunAddr
+    }
+    if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
+        cfg.FlagRateLimit, err = strconv.Atoi(envRateLimit)
+        if err != nil {
+            logger.Log.Fatal("error while parsing rate limit", zap.Error(err))
+        }
     }
     if envHashValue := os.Getenv("KEY"); envHashValue != "" {
         cfg.FlagHashKey = envHashValue
