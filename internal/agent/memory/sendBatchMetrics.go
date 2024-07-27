@@ -22,25 +22,15 @@ func (m *MemoryStats) SendBatchMetrics(cfg *config.ConfigAgent) {
         metrics := []models.Metrics{}
         time.Sleep(cfg.PauseDuration)
         for i, v := range m.GaugeMetrics {
-            metricGauge := models.Metrics{
-                ID:    i,
-                MType: config.GaugeType,
-                Value: &v,
-            }
+            metricGauge := GaugeConstructor(v, i)
             metrics = append(metrics, metricGauge)
         }
-        countDelta := int64(m.CounterMetric)
-        metricCounter := models.Metrics{
-            ID:    config.PollCount,
-            MType: config.CountType,
-            Delta: &countDelta,
-        }
+        metricCounter := CounterConstructor(int64(m.CounterMetric))
         metrics = append(metrics, metricCounter)
         err := sendAllMetrics(cfg, metrics)
         if err != nil {
             logger.Log.Info("unexpected sending batch metrics error:", zap.Error(err))
         }
-        logger.Log.Info("Metrics batch sent successfully")
     }
 }
 
@@ -53,7 +43,7 @@ func sendAllMetrics(cfg *config.ConfigAgent, metrics []models.Metrics) error {
         logger.Log.Info("marshalling json error:", zap.Error(err))
         return err
     }
-    // signing metric value by sha256 and setting header accordingly
+    // signing metric value with sha256 and setting header accordingly
     if cfg.FlagHashKey != "" {
         key := []byte(cfg.FlagHashKey)
         h := hmac.New(sha256.New, key)

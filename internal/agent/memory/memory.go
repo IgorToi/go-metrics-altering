@@ -11,7 +11,7 @@ import (
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
 )
 
@@ -22,20 +22,51 @@ var (
 type MemoryStats struct {
 	GaugeMetrics  map[string]float64
 	CounterMetric int
-	Rtm           runtime.MemStats
-	rwm 				sync.RWMutex
+	RunTimeMem    *runtime.MemStats
+	rwm           sync.RWMutex
 }
 
 func NewMemoryStats() *MemoryStats {
 	return &MemoryStats{
 		GaugeMetrics: make(map[string]float64),
+		RunTimeMem:   &runtime.MemStats{},
 	}
 }
 
-func (m *MemoryStats) UpdateVirtualMemoryStat(cfg *config.ConfigAgent) {
-	PauseDuration := time.Duration(cfg.FlagPollInterval) * time.Second
+// Reads metrics from memory and sends to chanel
+func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, metricsChan chan models.Metrics) {
 	for {
-		time.Sleep(PauseDuration)
+		time.Sleep(cfg.PauseDuration)
+		for name, value := range m.GaugeMetrics {
+			metric := GaugeConstructor(value, name)
+			metricsChan <- metric
+		}
+		metric := CounterConstructor(int64(m.CounterMetric))
+		metricsChan <- metric
+	}
+}
+
+// Constructs counter metric model
+func CounterConstructor(delta int64) models.Metrics {
+	return models.Metrics{
+		ID:    config.PollCount,
+		MType: config.CountType,
+		Delta: &delta,
+	}
+}
+
+// Constructs gauge metric model
+func GaugeConstructor(value float64, name string) models.Metrics {
+	return models.Metrics{
+		ID:    name,
+		MType: config.GaugeType,
+		Value: &value,
+	}
+}
+
+func (m *MemoryStats) UpdateCPURAMStat(cfg *config.ConfigAgent) {
+	for {
+		time.Sleep(cfg.PauseDuration)
 		cpuNumber, err := cpu.Counts(true)
 		if err != nil {
 			logger.Log.Info("error while loading cpu Counts:", zap.Error(err))
@@ -52,64 +83,42 @@ func (m *MemoryStats) UpdateVirtualMemoryStat(cfg *config.ConfigAgent) {
 	}
 }
 
-func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, jobs chan models.Metrics) {
+func (m *MemoryStats) UpdateRunTimeStat(cfg *config.ConfigAgent) {
 	for {
-        time.Sleep(cfg.PauseDuration)
-        for name, value := range m.GaugeMetrics {
-            metricGauge := models.Metrics{
-                ID: name,
-                MType: config.GaugeType,
-                Value: &value,
-            }
-            jobs <- metricGauge
-        }
-        delta := int64(m.CounterMetric)
-        metricCounter := models.Metrics{
-            ID: config.PollCount,
-            MType: config.CountType,
-            Delta: &delta,
-        }
-        jobs <- metricCounter
-    }
-}
-
-func (m *MemoryStats) UpdateMetrics(cfg *config.ConfigAgent) {
-	PauseDuration := time.Duration(cfg.FlagPollInterval) * time.Second
-	for {
-		time.Sleep(PauseDuration)
-		runtime.ReadMemStats(&m.Rtm)
+		time.Sleep(cfg.PauseDuration)
+		runtime.ReadMemStats(m.RunTimeMem)
 		m.rwm.Lock()
-		m.GaugeMetrics["Alloc"] = float64(m.Rtm.Alloc)
-		m.GaugeMetrics["BuckHashSys"] = float64(m.Rtm.BuckHashSys)
-		m.GaugeMetrics["Frees"] = float64(m.Rtm.Frees)
-		m.GaugeMetrics["GCCPUFraction"] = float64(m.Rtm.GCCPUFraction)
-		m.GaugeMetrics["GCSys"] = float64(m.Rtm.GCSys)
-		m.GaugeMetrics["HeapAlloc"] = float64(m.Rtm.HeapAlloc)
-		m.GaugeMetrics["HeapIdle"] = float64(m.Rtm.HeapIdle)
-		m.GaugeMetrics["HeapInuse"] = float64(m.Rtm.HeapInuse)
-		m.GaugeMetrics["HeapObjects"] = float64(m.Rtm.HeapObjects)
-		m.GaugeMetrics["HeapReleased"] = float64(m.Rtm.HeapReleased)
-		m.GaugeMetrics["HeapSys"] = float64(m.Rtm.HeapSys)
-		m.GaugeMetrics["LastGC"] = float64(m.Rtm.LastGC)
-		m.GaugeMetrics["Lookups"] = float64(m.Rtm.Lookups)
-		m.GaugeMetrics["MCacheInuse"] = float64(m.Rtm.MCacheInuse)
-		m.GaugeMetrics["MCacheSys"] = float64(m.Rtm.MCacheSys)
-		m.GaugeMetrics["MSpanInuse"] = float64(m.Rtm.MSpanInuse)
-		m.GaugeMetrics["MSpanSys"] = float64(m.Rtm.MSpanSys)
-		m.GaugeMetrics["Mallocs"] = float64(m.Rtm.Mallocs)
-		m.GaugeMetrics["NextGC"] = float64(m.Rtm.NextGC)
-		m.GaugeMetrics["NumForcedGC"] = float64(m.Rtm.NumForcedGC)
-		m.GaugeMetrics["NumGC"] = float64(m.Rtm.NumGC)
-		m.GaugeMetrics["OtherSys"] = float64(m.Rtm.OtherSys)
-		m.GaugeMetrics["NextGC"] = float64(m.Rtm.NextGC)
-		m.GaugeMetrics["NumForcedGC"] = float64(m.Rtm.NumForcedGC)
-		m.GaugeMetrics["NumGC"] = float64(m.Rtm.NumGC)
-		m.GaugeMetrics["OtherSys"] = float64(m.Rtm.OtherSys)
-		m.GaugeMetrics["PauseTotalNs"] = float64(m.Rtm.PauseTotalNs)
-		m.GaugeMetrics["StackInuse"] = float64(m.Rtm.StackInuse)
-		m.GaugeMetrics["StackSys"] = float64(m.Rtm.StackSys)
-		m.GaugeMetrics["Sys"] = float64(m.Rtm.StackSys)
-		m.GaugeMetrics["TotalAlloc"] = float64(m.Rtm.TotalAlloc)
+		m.GaugeMetrics["Alloc"] = float64(m.RunTimeMem.Alloc)
+		m.GaugeMetrics["BuckHashSys"] = float64(m.RunTimeMem.BuckHashSys)
+		m.GaugeMetrics["Frees"] = float64(m.RunTimeMem.Frees)
+		m.GaugeMetrics["GCCPUFraction"] = float64(m.RunTimeMem.GCCPUFraction)
+		m.GaugeMetrics["GCSys"] = float64(m.RunTimeMem.GCSys)
+		m.GaugeMetrics["HeapAlloc"] = float64(m.RunTimeMem.HeapAlloc)
+		m.GaugeMetrics["HeapIdle"] = float64(m.RunTimeMem.HeapIdle)
+		m.GaugeMetrics["HeapInuse"] = float64(m.RunTimeMem.HeapInuse)
+		m.GaugeMetrics["HeapObjects"] = float64(m.RunTimeMem.HeapObjects)
+		m.GaugeMetrics["HeapReleased"] = float64(m.RunTimeMem.HeapReleased)
+		m.GaugeMetrics["HeapSys"] = float64(m.RunTimeMem.HeapSys)
+		m.GaugeMetrics["LastGC"] = float64(m.RunTimeMem.LastGC)
+		m.GaugeMetrics["Lookups"] = float64(m.RunTimeMem.Lookups)
+		m.GaugeMetrics["MCacheInuse"] = float64(m.RunTimeMem.MCacheInuse)
+		m.GaugeMetrics["MCacheSys"] = float64(m.RunTimeMem.MCacheSys)
+		m.GaugeMetrics["MSpanInuse"] = float64(m.RunTimeMem.MSpanInuse)
+		m.GaugeMetrics["MSpanSys"] = float64(m.RunTimeMem.MSpanSys)
+		m.GaugeMetrics["Mallocs"] = float64(m.RunTimeMem.Mallocs)
+		m.GaugeMetrics["NextGC"] = float64(m.RunTimeMem.NextGC)
+		m.GaugeMetrics["NumForcedGC"] = float64(m.RunTimeMem.NumForcedGC)
+		m.GaugeMetrics["NumGC"] = float64(m.RunTimeMem.NumGC)
+		m.GaugeMetrics["OtherSys"] = float64(m.RunTimeMem.OtherSys)
+		m.GaugeMetrics["NextGC"] = float64(m.RunTimeMem.NextGC)
+		m.GaugeMetrics["NumForcedGC"] = float64(m.RunTimeMem.NumForcedGC)
+		m.GaugeMetrics["NumGC"] = float64(m.RunTimeMem.NumGC)
+		m.GaugeMetrics["OtherSys"] = float64(m.RunTimeMem.OtherSys)
+		m.GaugeMetrics["PauseTotalNs"] = float64(m.RunTimeMem.PauseTotalNs)
+		m.GaugeMetrics["StackInuse"] = float64(m.RunTimeMem.StackInuse)
+		m.GaugeMetrics["StackSys"] = float64(m.RunTimeMem.StackSys)
+		m.GaugeMetrics["Sys"] = float64(m.RunTimeMem.StackSys)
+		m.GaugeMetrics["TotalAlloc"] = float64(m.RunTimeMem.TotalAlloc)
 		m.GaugeMetrics["RandomValue"] = rand.Float64()
 		m.CounterMetric++
 		m.rwm.Unlock()

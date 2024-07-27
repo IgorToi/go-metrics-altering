@@ -11,7 +11,7 @@ import (
 )
 
 type MemStorage struct {
-	rm 		sync.RWMutex
+	rm      sync.RWMutex
 	Gauge   map[string]float64
 	Counter map[string]int64
 }
@@ -49,22 +49,18 @@ func InitStorage() *MemStorage {
 }
 
 func (m *MemStorage) UpdateGaugeMetric(metricName string, metricValue float64) {
-	//
 	if m.Gauge == nil {
 		m.Gauge = make(map[string]float64)
 	}
-	//
 	m.rm.Lock()
 	m.Gauge[metricName] = metricValue
 	m.rm.Unlock()
 }
 
 func (m *MemStorage) UpdateCounterMetric(metricName string, metricValue int64) {
-	//
 	if m.Counter == nil {
 		m.Counter = make(map[string]int64)
 	}
-	//
 	m.rm.Lock()
 	m.Counter[metricName] += metricValue
 	m.rm.Unlock()
