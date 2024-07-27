@@ -22,10 +22,10 @@ func (m *MemoryStats) SendBatchMetrics(cfg *config.ConfigAgent) {
         metrics := []models.Metrics{}
         time.Sleep(cfg.PauseDuration)
         for i, v := range m.GaugeMetrics {
-            metricGauge := GaugeConstructor(v, i)
+            metricGauge := models.GaugeConstructor(v, i)
             metrics = append(metrics, metricGauge)
         }
-        metricCounter := CounterConstructor(int64(m.CounterMetric))
+        metricCounter := models.CounterConstructor(int64(m.CounterMetric))
         metrics = append(metrics, metricCounter)
         err := sendAllMetrics(cfg, metrics)
         if err != nil {

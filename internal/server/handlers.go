@@ -88,18 +88,9 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var resp models.Metrics
 	delta := m.Counter[config.PollCount]
 	if delta == 0 {
-		resp = models.Metrics{
-			ID:    req.ID,
-			MType: req.MType,
-			Value: req.Value,
-		}
+        resp = models.GaugeConstructor(*req.Value, req.ID)
 	} else {
-		resp = models.Metrics{
-			ID:    req.ID,
-			MType: req.MType,
-			Value: req.Value,
-			Delta: &delta,
-		}
+        resp = models.CounterConstructor(delta)
 	}
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {

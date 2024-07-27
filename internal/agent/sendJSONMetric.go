@@ -12,14 +12,14 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
-	"github.com/igortoigildin/go-metrics-altering/internal/agent/memory"
 	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"go.uber.org/zap"
 )
 
 func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) error {
     agent := resty.New()
-    metric := memory.GaugeConstructor(value, metricName)
+    metric := models.GaugeConstructor(value, metricName)
     req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
         SetHeader("Accept-Encoding", "gzip")
     
@@ -72,7 +72,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 
 func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
     agent := resty.New()
-    metric := memory.CounterConstructor(int64(counter))
+    metric := models.CounterConstructor(int64(counter))
     req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
         SetHeader("Accept-Encoding", "gzip")
     metricJSON, err := json.Marshal(metric)

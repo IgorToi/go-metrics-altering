@@ -38,29 +38,11 @@ func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, metricsChan chan mode
 	for {
 		time.Sleep(cfg.PauseDuration)
 		for name, value := range m.GaugeMetrics {
-			metric := GaugeConstructor(value, name)
+			metric := models.GaugeConstructor(value, name)
 			metricsChan <- metric
 		}
-		metric := CounterConstructor(int64(m.CounterMetric))
+		metric := models.CounterConstructor(int64(m.CounterMetric))
 		metricsChan <- metric
-	}
-}
-
-// Constructs counter metric model
-func CounterConstructor(delta int64) models.Metrics {
-	return models.Metrics{
-		ID:    config.PollCount,
-		MType: config.CountType,
-		Delta: &delta,
-	}
-}
-
-// Constructs gauge metric model
-func GaugeConstructor(value float64, name string) models.Metrics {
-	return models.Metrics{
-		ID:    name,
-		MType: config.GaugeType,
-		Value: &value,
 	}
 }
 
