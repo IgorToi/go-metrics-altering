@@ -87,20 +87,20 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var resp models.Metrics
 	delta := m.Counter[config.PollCount]
-    if delta == 0 {
-        resp = models.Metrics{
-            ID:    req.ID,
-            MType: req.MType,
-            Value: req.Value,
-        }
-    } else {
-        resp = models.Metrics{
-            ID:    req.ID,
-            MType: req.MType,
-            Value: req.Value,
-            Delta: &delta,
-        }
-    }
+	if delta == 0 {
+		resp = models.Metrics{
+			ID:    req.ID,
+			MType: req.MType,
+			Value: req.Value,
+		}
+	} else {
+		resp = models.Metrics{
+			ID:    req.ID,
+			MType: req.MType,
+			Value: req.Value,
+			Delta: &delta,
+		}
+	}
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))

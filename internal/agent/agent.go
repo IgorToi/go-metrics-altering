@@ -25,7 +25,7 @@ func RunAgent() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		go memoryStats.UpdateRunTimeStat(cfg)
+		memoryStats.UpdateRunTimeStat(cfg)
 	}()
 
 	wg.Add(1)
@@ -56,25 +56,25 @@ func sendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 		time.Sleep(cfg.PauseDuration)
 		for metric := range metricsChan {
 			switch metric.MType {
-            case config.CountType:
-                err := sendURLCounter(cfg, int(*metric.Delta))
-                if err != nil {
-                    logger.Log.Info("unexpected sending url counter metric error:", zap.Error(err))
-                }
-                err = SendJSONCounter(int(*metric.Delta), cfg)
-                if err != nil {
-                    logger.Log.Info("unexpected sending json counter metric error:", zap.Error(err))
-                }
-            case config.GaugeType:
-                err := SendURLGauge(cfg, *metric.Value, metric.ID)
-                if err != nil {
-                    logger.Log.Info("unexpected sending url gauge metric error:", zap.Error(err))
-                }
-                err = SendJSONGauge(metric.ID, cfg, *metric.Value)
-                if err != nil {
-                    logger.Log.Info("unexpected sending json gauge metric error:", zap.Error(err))
-                }
-            }
+			case config.CountType:
+				err := sendURLCounter(cfg, int(*metric.Delta))
+				if err != nil {
+					logger.Log.Info("unexpected sending url counter metric error:", zap.Error(err))
+				}
+				err = SendJSONCounter(int(*metric.Delta), cfg)
+				if err != nil {
+					logger.Log.Info("unexpected sending json counter metric error:", zap.Error(err))
+				}
+			case config.GaugeType:
+				err := SendURLGauge(cfg, *metric.Value, metric.ID)
+				if err != nil {
+					logger.Log.Info("unexpected sending url gauge metric error:", zap.Error(err))
+				}
+				err = SendJSONGauge(metric.ID, cfg, *metric.Value)
+				if err != nil {
+					logger.Log.Info("unexpected sending json gauge metric error:", zap.Error(err))
+				}
+			}
 		}
 	}
 }
@@ -90,10 +90,3 @@ func Initialize() *config.ConfigAgent {
 	}
 	return cfg
 }
-
-
-
-
-
-
-
