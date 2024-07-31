@@ -33,6 +33,7 @@ type ConfigAgent struct {
 func LoadConfig() (*ConfigAgent, error) {
 	cfg := new(ConfigAgent)
 	var err error
+	//flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&cfg.FlagLogLevel, "u", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent")
