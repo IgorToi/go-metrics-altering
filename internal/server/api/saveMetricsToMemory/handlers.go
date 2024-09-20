@@ -51,23 +51,33 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case config.CountType:
 		m.Counter[config.PollCount] += *req.Delta
 	}
-
-	var resp models.Metrics
+	
 	delta := m.Counter[config.PollCount]
-	if delta == 0 {
-		resp = models.Metrics{
-			ID:    req.ID,
-			MType: req.MType,
-			Value: req.Value,
-		}
-	} else {
-		resp = models.Metrics{
-			ID:    req.ID,
-			MType: req.MType,
-			Value: req.Value,
-			Delta: &delta,
-		}
+	req.Delta = &delta
+	resp := models.Metrics{
+		ID:    req.ID,
+		MType: req.MType,
+		Value: req.Value,
+		Delta: req.Delta,
 	}
+
+	// var resp models.Metrics
+	// var delta
+	//delta := m.Counter[config.PollCount]
+	// if delta == 0 {
+	// 	resp = models.Metrics{
+	// 		ID:    req.ID,
+	// 		MType: req.MType,
+	// 		Value: req.Value,
+	// 	}
+	// } else {
+	// 	resp = models.Metrics{
+	// 		ID:    req.ID,
+	// 		MType: req.MType,
+	// 		Value: req.Value,
+	// 		Delta: delta,
+	// 	}
+	// }
 
 	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
 	if err != nil {
@@ -185,7 +195,7 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	
+
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	rw.WriteHeader(http.StatusOK)
 }

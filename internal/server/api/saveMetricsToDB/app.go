@@ -136,7 +136,7 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		Value: req.Value,
 		Delta: req.Delta,
 	}
-	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)	
+	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
 	if err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
@@ -210,7 +210,7 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Delta = res.Delta
 	}
-	
+
 	w.Header().Add("Content-Encoding", "gzip")
 	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
 	if err != nil {
