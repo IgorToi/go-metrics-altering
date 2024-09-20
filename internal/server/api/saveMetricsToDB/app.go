@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -12,6 +11,7 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	processjson "github.com/igortoigildin/go-metrics-altering/pkg/processJSON"
 	"go.uber.org/zap"
 )
 
@@ -47,18 +47,21 @@ func (app *app) Ping(w http.ResponseWriter, r *http.Request) {
 func (app *app) updates(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	var metrics []models.Metrics
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&metrics); err != nil {
+
+	metrics := make([]models.Metrics, 0)
+	err := processjson.ReadJSON(r, metrics)
+	if err != nil {
 		logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	for _, metric := range metrics { // iterating through []Metrics and adding it to db one by one
 		if metric.MType != config.GaugeType && metric.MType != config.CountType {
 			logger.Log.Debug("usupported request type", zap.String("type", metric.MType))
@@ -95,19 +98,21 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+
 	var req models.Metrics
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&req); err != nil {
+	err := processjson.ReadJSON(r, req)
+	if err != nil {
 		logger.Log.Info("cannot decode request JSON body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+
 	if req.MType != config.GaugeType && req.MType != config.CountType {
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+
 	switch req.MType {
 	case config.GaugeType:
 		err := app.storage.Update(ctx, req.MType, req.ID, req.Value)
@@ -124,19 +129,18 @@ func (app *app) updateMetric(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	resp := models.Metrics{
 		ID:    req.ID,
 		MType: req.MType,
 		Value: req.Value,
 		Delta: req.Delta,
 	}
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
+	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)	
+	if err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	logger.Log.Debug("sending HTTP 200 response")
 }
 
 func (app *app) getAllmetrics(w http.ResponseWriter, r *http.Request) {
@@ -156,15 +160,16 @@ func (app *app) getAllmetrics(w http.ResponseWriter, r *http.Request) {
 func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+
 	if r.Method != http.MethodPost {
 		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	logger.Log.Debug("decoding request")
+
 	var req models.Metrics
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&req); err != nil {
+	err := processjson.ReadJSON(r, req)
+	if err != nil {
 		logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -205,12 +210,11 @@ func (app *app) getMetric(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Delta = res.Delta
 	}
-	w.Header().Set("Content-Type", "application/json")
+	
 	w.Header().Add("Content-Encoding", "gzip")
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
+	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
+	if err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
-	logger.Log.Debug("sending HTTP 200 response")
 }

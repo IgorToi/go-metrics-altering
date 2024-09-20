@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -9,6 +8,7 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	processjson "github.com/igortoigildin/go-metrics-altering/pkg/processJSON"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
@@ -31,14 +31,15 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	logger.Log.Debug("decoding request")
+
 	var req models.Metrics
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&req); err != nil {
+	err := processjson.ReadJSON(r, req)
+	if err != nil {
 		logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
+		processjson.SendJSONError(w, http.StatusBadRequest, "badly-formed JSON")
 		return
 	}
+
 	if req.MType != config.GaugeType && req.MType != config.CountType {
 		logger.Log.Debug("usupported request type", zap.String("type", req.MType))
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -67,13 +68,12 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 			Delta: &delta,
 		}
 	}
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
+
+	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
+	if err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	logger.Log.Debug("sending HTTP 200 response")
 }
 
 // v2 with request body
@@ -83,14 +83,15 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	logger.Log.Debug("decoding request")
+
 	var req models.Metrics
-	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&req); err != nil {
+	err := processjson.ReadJSON(r, req)
+	if err != nil {
 		logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		processjson.SendJSONError(w, http.StatusBadRequest, "badly-formed JSON")
 		return
 	}
+
 	resp := models.Metrics{
 		ID:    req.ID,
 		MType: req.MType,
@@ -98,7 +99,7 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	switch req.MType {
 	case config.GaugeType:
 		if !m.CheckIfGaugeMetricPresent(req.ID) {
-			logger.Log.Debug("usupported metric name", zap.String("name", req.ID))
+			logger.Log.Info("usupported metric name", zap.String("name", req.ID))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -112,14 +113,13 @@ func (m *MemStorage) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+
 	w.Header().Add("Content-Encoding", "gzip")
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(resp); err != nil {
+	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
+	if err != nil {
 		logger.Log.Debug("error encoding response", zap.Error(err))
 		return
 	}
-	logger.Log.Debug("sending HTTP 200 response")
 }
 
 // v1
@@ -127,9 +127,11 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	if metricName == "" {
+		logger.Log.Info("metricName not provided")
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	metricValue := chi.URLParam(r, "metricValue")
 	switch metricType {
 	case config.GaugeType:
@@ -159,6 +161,7 @@ func (m *MemStorage) UpdateHandle(rw http.ResponseWriter, r *http.Request) {
 func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
+
 	switch metricType {
 	case config.GaugeType:
 		if !m.CheckIfGaugeMetricPresent(metricName) {
@@ -182,6 +185,7 @@ func (m *MemStorage) ValueHandle(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	rw.WriteHeader(http.StatusOK)
 }
