@@ -21,7 +21,7 @@ func TestSendJSONGauge(t *testing.T) {
 	}
 	v := float64(1)
 	successBody := models.Metrics{
-		ID: "Alloc",
+		ID:    "Alloc",
 		MType: "gauge",
 		Value: &v,
 	}
@@ -45,7 +45,7 @@ func TestSendJSONGauge(t *testing.T) {
 	defer server.Close()
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
-		URL: server.URL,
+		URL:         server.URL,
 	}
 	tests := []struct {
 		name    string
@@ -56,8 +56,8 @@ func TestSendJSONGauge(t *testing.T) {
 			name: "Success",
 			args: args{
 				metricName: "Alloc",
-				cfg: &cfg,
-				value: 1.00,
+				cfg:        &cfg,
+				value:      1.00,
 			},
 			wantErr: false,
 		},
@@ -70,7 +70,6 @@ func TestSendJSONGauge(t *testing.T) {
 		})
 	}
 }
-
 
 func TestSendURLGauge(t *testing.T) {
 	type args struct {
@@ -86,7 +85,7 @@ func TestSendURLGauge(t *testing.T) {
 	defer server.Close()
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
-		URL: server.URL,
+		URL:         server.URL,
 	}
 	tests := []struct {
 		name    string
@@ -97,8 +96,8 @@ func TestSendURLGauge(t *testing.T) {
 			name: "Success",
 			args: args{
 				metricName: "Alloc",
-				cfg: &cfg,
-				value: 1.00,
+				cfg:        &cfg,
+				value:      1.00,
 			},
 			wantErr: false,
 		},

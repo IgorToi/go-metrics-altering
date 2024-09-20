@@ -1,51 +1,17 @@
-package server
+package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"text/template"
 
 	"github.com/go-chi/chi"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	"github.com/igortoigildin/go-metrics-altering/templates"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
-
-var t *template.Template
-
-func MetricRouter(cfg *config.ConfigServer, ctx context.Context) chi.Router {
-	var m = InitStorage()
-	if cfg.FlagRestore {
-		err := m.Load(cfg.FlagStorePath) // if flag restore is true - load metrics from the local file
-		if err != nil {
-			logger.Log.Info("error loading metrics from the file", zap.Error(err))
-		}
-	}
-	// start goroutine to save metrics in file
-	go m.saveMetrics(cfg)
-	// parse template
-	t = templates.ParseTemplate()
-	r := chi.NewRouter()
-	DB := InitRepo(ctx, cfg)
-	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(DB.Ping))))
-	// v1
-	r.Get("/value/{metricType}/{metricName}", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.ValueHandle), cfg))))
-	r.Get("/", WithLogging(gzipMiddleware(http.HandlerFunc(auth(m.InformationHandle, cfg)))))
-
-	r.Route("/", func(r chi.Router) {
-		// v1
-		r.Post("/update/{metricType}/{metricName}/{metricValue}", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.UpdateHandle), cfg))))
-		// v2
-		r.Post("/update/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.UpdateHandler), cfg))))
-		r.Post("/value/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(m.ValueHandler), cfg))))
-	})
-	return r
-}
 
 func (rep *DB) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

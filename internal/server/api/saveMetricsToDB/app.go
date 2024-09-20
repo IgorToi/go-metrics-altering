@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"context"
@@ -7,38 +7,31 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/go-chi/chi"
+	_ "net/http/pprof" // подключаем пакет pprof
+
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	"github.com/igortoigildin/go-metrics-altering/internal/storage"
-	"github.com/igortoigildin/go-metrics-altering/templates"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
 
+type Storage interface {
+	Update(ctx context.Context, metricType string, metricName string, metricValue any) error
+	Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error)
+	GetAll(ctx context.Context) (map[string]any, error)
+	Ping(ctx context.Context) error
+}
+
 type app struct {
-	storage storage.Storage
+	storage Storage
 	cfg     *config.ConfigServer
 }
 
-func newApp(s storage.Storage, cfg *config.ConfigServer) *app {
+func newApp(s Storage, cfg *config.ConfigServer) *app {
 	return &app{
 		storage: s,
 		cfg:     cfg,
 	}
-}
-
-func routerDB(ctx context.Context, cfg *config.ConfigServer) chi.Router {
-	repo := storage.InitPostgresRepo(ctx, cfg)
-	app := newApp(repo, cfg)
-	t = templates.ParseTemplate()
-	r := chi.NewRouter()
-	r.Get("/ping", WithLogging(gzipMiddleware(http.HandlerFunc(app.Ping))))
-	r.Get("/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.getAllmetrics), cfg))))
-	r.Post("/update/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.updateMetric), cfg))))
-	r.Post("/updates/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.updates), cfg))))
-	r.Post("/value/", WithLogging(gzipMiddleware(auth(http.HandlerFunc(app.getMetric), cfg))))
-	return r
 }
 
 func (app *app) Ping(w http.ResponseWriter, r *http.Request) {

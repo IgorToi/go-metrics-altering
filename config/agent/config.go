@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
 

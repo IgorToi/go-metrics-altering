@@ -1,43 +1,13 @@
-package server
+package api
 
 import (
-	"context"
-	"net/http"
 	"sync"
-
-	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
-	"go.uber.org/zap"
 )
 
 type MemStorage struct {
 	rm      sync.RWMutex
 	Gauge   map[string]float64
 	Counter map[string]int64
-}
-
-func RunServer() {
-	ctx := context.Background()
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		logger.Log.Fatal("error while logading config", zap.Error(err))
-	}
-	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		logger.Log.Fatal("error while initializing logger", zap.Error(err))
-	}
-	logger.Log.Info("Running server", zap.String("address", cfg.FlagRunAddr))
-	switch cfg.FlagDBDSN {
-	case "":
-		http.ListenAndServe(cfg.FlagRunAddr, MetricRouter(cfg, ctx))
-		if err != nil {
-			logger.Log.Fatal("cannot start the server", zap.Error(err))
-		}
-	default:
-		http.ListenAndServe(cfg.FlagRunAddr, routerDB(ctx, cfg))
-		if err != nil {
-			logger.Log.Fatal("cannot start the server", zap.Error(err))
-		}
-	}
 }
 
 func InitStorage() *MemStorage {

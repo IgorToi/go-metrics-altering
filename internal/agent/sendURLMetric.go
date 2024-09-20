@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
 

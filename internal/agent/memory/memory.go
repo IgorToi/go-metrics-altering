@@ -8,8 +8,8 @@ import (
 	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
