@@ -51,7 +51,7 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	case config.CountType:
 		m.Counter[config.PollCount] += *req.Delta
 	}
-	
+
 	delta := m.Counter[config.PollCount]
 	req.Delta = &delta
 	resp := models.Metrics{
@@ -60,24 +60,6 @@ func (m *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		Value: req.Value,
 		Delta: req.Delta,
 	}
-
-	// var resp models.Metrics
-	// var delta
-	//delta := m.Counter[config.PollCount]
-	// if delta == 0 {
-	// 	resp = models.Metrics{
-	// 		ID:    req.ID,
-	// 		MType: req.MType,
-	// 		Value: req.Value,
-	// 	}
-	// } else {
-	// 	resp = models.Metrics{
-	// 		ID:    req.ID,
-	// 		MType: req.MType,
-	// 		Value: req.Value,
-	// 		Delta: delta,
-	// 	}
-	// }
 
 	err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
 	if err != nil {
