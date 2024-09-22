@@ -18,8 +18,6 @@ import (
 var t *template.Template
 
 func RouterDB(ctx context.Context, cfg *config.ConfigServer, s Storage) chi.Router {
-	// repo := storage.InitPostgresRepo(ctx, cfg)
-	// app := newApp(repo, cfg)
 	t = templates.ParseTemplate()
 	r := chi.NewRouter()
 

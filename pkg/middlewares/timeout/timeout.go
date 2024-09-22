@@ -22,11 +22,11 @@ func Timeout(timeout time.Duration, next http.HandlerFunc) http.HandlerFunc {
 		}()
 
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			logger.Log.Info("HTTP Request timed out")
 			w.WriteHeader(http.StatusRequestTimeout)
 			w.Write([]byte("timed out"))
-		case <- processDone:
+		case <-processDone:
 		}
 	})
 }
