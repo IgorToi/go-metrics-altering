@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type ErrorResponse struct {
@@ -20,10 +23,12 @@ func SendJSONError(w http.ResponseWriter, code int, message string) {
 }
 
 func ReadJSON(r *http.Request, dst any) error {
-	err := json.NewDecoder(r.Body).Decode(dst)
+	err := json.NewDecoder(r.Body).Decode(&dst)
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
+
+		logger.Log.Info("error: ", zap.Error(err))
 
 		switch {
 		case errors.As(err, &syntaxError):

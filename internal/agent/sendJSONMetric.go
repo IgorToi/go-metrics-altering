@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -15,6 +16,10 @@ import (
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
+)
+
+var (
+	ErrConnectionFailed = errors.New("connection failed")
 )
 
 func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) error {
@@ -67,6 +72,8 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 			return err
 		}
 	}
+
+	logger.Log.Info("sent JSON gauge metric:",  zap.Float64(metricName, value))
 	return nil
 }
 
@@ -118,5 +125,7 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 			return err
 		}
 	}
+
+	logger.Log.Info("sent JSON counter metric:",  zap.Int("conuter", counter))
 	return nil
 }

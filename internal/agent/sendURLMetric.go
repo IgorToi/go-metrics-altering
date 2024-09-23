@@ -48,6 +48,8 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 			return err
 		}
 	}
+
+	logger.Log.Info("sent url counter metric:",  zap.Int("conuter", counter))
 	return nil
 }
 
@@ -83,5 +85,7 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 			return err
 		}
 	}
+
+	logger.Log.Info("sent JSON gauge metric:",  zap.Float64(metricName, value))
 	return nil
 }
