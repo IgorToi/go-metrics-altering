@@ -1,3 +1,4 @@
+// Package processjson provides helpful functions for reading and writing JSON requests.
 package processjson
 
 import (
