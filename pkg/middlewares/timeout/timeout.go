@@ -1,3 +1,4 @@
+// Package timeout provides middleware for adding context with timeout to  http request.
 package timeout
 
 import (

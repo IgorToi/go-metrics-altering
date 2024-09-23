@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	"github.com/igortoigildin/go-metrics-altering/internal/server/api/saveMetricsToDB/mocks"
+	"github.com/igortoigildin/go-metrics-altering/internal/server/api/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

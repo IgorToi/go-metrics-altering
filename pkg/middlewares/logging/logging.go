@@ -1,3 +1,5 @@
+// Package logging provides middleware for logging http requests and responses.
+
 package logging
 
 import (

@@ -1,3 +1,4 @@
+// Package compress provides middleware for request compression.
 package compress
 
 import (

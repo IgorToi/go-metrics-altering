@@ -1,4 +1,4 @@
-package api
+package cash
 
 import (
 	"encoding/json"
@@ -6,11 +6,13 @@ import (
 	"sync"
 	"time"
 
-	config "github.com/igortoigildin/go-metrics-altering/config/server"
+	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
+
+const pollCount = "PollCount"
 
 type MemStorage struct {
 	rm      sync.RWMutex
@@ -18,10 +20,10 @@ type MemStorage struct {
 	Counter map[string]int64
 }
 
-func InitStorage() *MemStorage {
+func InitLocalStorage() *MemStorage {
 	var m MemStorage
 	m.Counter = make(map[string]int64)
-	m.Counter["PollCount"] = 0
+	m.Counter[pollCount] = 0
 	m.Gauge = make(map[string]float64)
 	return &m
 }
@@ -72,19 +74,8 @@ func (m *MemStorage) CheckIfCountMetricPresent(metricName string) bool {
 	return ok
 }
 
-func ConvertToSingleMap(a map[string]float64, b map[string]int64) map[string]interface{} {
-	c := make(map[string]interface{}, 33)
-	for i, v := range a {
-		c[i] = v
-	}
-	for j, l := range b {
-		c[j] = l
-	}
-	return c
-}
-
 // iterate through memStorage
-func (m *MemStorage) ConvertToSlice() []models.Metrics {
+func (m *MemStorage) GetAllMetrics() []models.Metrics {
 	metricSlice := make([]models.Metrics, 33)
 	var model models.Metrics
 	for i, v := range m.Gauge {
@@ -103,17 +94,8 @@ func (m *MemStorage) ConvertToSlice() []models.Metrics {
 	return metricSlice
 }
 
-// save slice with metrics to the file
-func Save(fname string, metricSlice []models.Metrics) error {
-	data, err := json.MarshalIndent(metricSlice, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(fname, data, 0606)
-}
-
 // load metrics from local file
-func (m *MemStorage) Load(fname string) error {
+func (m *MemStorage) LoadAllFromFile(fname string) error {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return err
@@ -132,14 +114,22 @@ func (m *MemStorage) Load(fname string) error {
 	return nil
 }
 
-// save metrics from memStorage to the file every StoreInterval
-func (m *MemStorage) saveMetrics(cfg *config.ConfigServer) {
-	pauseDuration := time.Duration(cfg.FlagStoreInterval) * time.Second
+// SaveMetrics periodically saves metrics from memStorage.
+func (m *MemStorage) SaveAllMetrics(FlagStoreInterval int, FlagStorePath string, fname string) error {
+	pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
 		time.Sleep(pauseDuration)
-		metricSlice := m.ConvertToSlice()
-		if err := Save(cfg.FlagStorePath, metricSlice); err != nil {
+		metricSlice := m.GetAllMetrics()
+		data, err := json.MarshalIndent(metricSlice, "", "  ")
+		if err != nil {
+			logger.Log.Info("marshalling error", zap.Error(err))
+			return err
+		}
+
+		err = os.WriteFile(fname, data, 0606)
+		if err != nil {
 			logger.Log.Info("error saving metrics to the file", zap.Error(err))
+			return err
 		}
 	}
 }
