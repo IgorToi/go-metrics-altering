@@ -1,3 +1,6 @@
+// Package agent accumulates, runtime metrics
+// and sends it to predefined server every poll interval.
+
 package agent
 
 import (
@@ -9,6 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// SendMetrics reads metrics from metricsChan and sends it server address as defined by agent config.
 func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 	for {
 		time.Sleep(cfg.PauseDuration)

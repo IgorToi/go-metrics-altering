@@ -1,3 +1,6 @@
+// Package memory accumulates updated metrics,
+// which is being used and consumed by agent.
+
 package memory
 
 import (
@@ -19,6 +22,7 @@ var (
 	ErrConnectionFailed = errors.New("connection failed")
 )
 
+// MemoryStats provides temporary storage for collected metrics.
 type MemoryStats struct {
 	GaugeMetrics  map[string]float64
 	CounterMetric int
@@ -26,6 +30,7 @@ type MemoryStats struct {
 	rwm           sync.RWMutex
 }
 
+// NewMemoryStats is constructor for MemoryStats.
 func NewMemoryStats() *MemoryStats {
 	return &MemoryStats{
 		GaugeMetrics: make(map[string]float64),
@@ -33,7 +38,7 @@ func NewMemoryStats() *MemoryStats {
 	}
 }
 
-// Reads metrics from memory and sends to chanel
+// ReadMetrics collects runtime metrics from memory and sends it to agent via metricsChan.
 func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, metricsChan chan models.Metrics) {
 	for {
 		time.Sleep(cfg.PauseDuration)
@@ -46,7 +51,11 @@ func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, metricsChan chan mode
 	}
 }
 
+// UpdateCPURAMStat collects and updates in MemoryStats CPU metrics.
 func (m *MemoryStats) UpdateCPURAMStat(cfg *config.ConfigAgent) {
+	if m.GaugeMetrics == nil {
+		m.GaugeMetrics = make(map[string]float64, 3)
+	}
 	for {
 		time.Sleep(cfg.PauseDuration)
 		cpuNumber, err := cpu.Counts(true)
@@ -65,6 +74,7 @@ func (m *MemoryStats) UpdateCPURAMStat(cfg *config.ConfigAgent) {
 	}
 }
 
+// UpdateRunTimeStat collects and updates in MemoryStats runtime metrics.
 func (m *MemoryStats) UpdateRunTimeStat(cfg *config.ConfigAgent) {
 	for {
 		time.Sleep(cfg.PauseDuration)

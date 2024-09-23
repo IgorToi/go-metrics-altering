@@ -34,8 +34,6 @@ func MetricRouter(cfg *config.ConfigServer, ctx context.Context) chi.Router {
 
 	r.Mount("/debug", middleware.Profiler())
 
-	DB := InitRepo(ctx, cfg)
-	r.Get("/ping", logging.WithLogging(compress.GzipMiddleware(http.HandlerFunc(DB.Ping))))
 	// v1
 	r.Get("/value/{metricType}/{metricName}", logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(m.ValueHandle), cfg))))
 	r.Get("/", logging.WithLogging(compress.GzipMiddleware(http.HandlerFunc(auth.Auth(m.InformationHandle, cfg)))))

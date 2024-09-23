@@ -1,3 +1,5 @@
+// Package models provides entity of metric.
+
 package models
 
 import config "github.com/igortoigildin/go-metrics-altering/config/agent"
@@ -9,7 +11,7 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-// Constructs counter metric model
+// CounterConstructor constructor for counter metric model.
 func CounterConstructor(delta int64) Metrics {
 	return Metrics{
 		ID:    config.PollCount,
@@ -18,7 +20,7 @@ func CounterConstructor(delta int64) Metrics {
 	}
 }
 
-// Constructs gauge metric model
+// GaugeConstructor constructor for gauge metric model.
 func GaugeConstructor(value float64, name string) Metrics {
 	return Metrics{
 		ID:    name,
