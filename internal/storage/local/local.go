@@ -1,7 +1,9 @@
-package cash
+package local
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"sync"
 	"time"
@@ -9,93 +11,76 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	processmap "github.com/igortoigildin/go-metrics-altering/pkg/processMap"
 	"go.uber.org/zap"
 )
 
 const pollCount = "PollCount"
 
-type MemStorage struct {
+type LocalStorage struct {
 	rm      sync.RWMutex
 	Gauge   map[string]float64
 	Counter map[string]int64
 }
 
-func InitLocalStorage() *MemStorage {
-	var m MemStorage
+func InitLocalStorage() *LocalStorage {
+	var m LocalStorage
 	m.Counter = make(map[string]int64)
 	m.Counter[pollCount] = 0
 	m.Gauge = make(map[string]float64)
 	return &m
 }
 
-func (m *MemStorage) UpdateGaugeMetric(metricName string, metricValue float64) {
-	if m.Gauge == nil {
-		m.Gauge = make(map[string]float64)
+func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
+	switch metricType {
+	case config.GaugeType:
+		if m.Gauge == nil {
+			m.Gauge = make(map[string]float64)
+		}
+		m.rm.Lock()
+		m.Gauge[metricName] = metricValue.(float64)
+		m.rm.Unlock()
+	case config.CountType:
+		if m.Counter == nil {
+			m.Counter = make(map[string]int64)
+		}
+		m.rm.Lock()
+		m.Counter[metricName] += metricValue.(int64)
+		m.rm.Unlock()
+	default:
+		return errors.New("undefined metric type")
 	}
-	m.rm.Lock()
-	m.Gauge[metricName] = metricValue
-	m.rm.Unlock()
+	return nil
 }
 
-func (m *MemStorage) UpdateCounterMetric(metricName string, metricValue int64) {
-	if m.Counter == nil {
-		m.Counter = make(map[string]int64)
+func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
+	var metric models.Metrics
+
+	switch metricType {
+	case config.GaugeType:
+		m.rm.RLock()
+		v := m.Gauge[metricName]
+		metric.Value = &v
+		m.rm.RUnlock()
+	case config.CountType:
+		m.rm.RLock()
+		d := m.Counter[metricName]
+		metric.Delta = &d
+		m.rm.RUnlock()
+	default:
+		return metric, errors.New("undefined metric type")
 	}
-	m.rm.Lock()
-	m.Counter[metricName] += metricValue
-	m.rm.Unlock()
+	metric.MType = metricType
+
+	return metric, nil
 }
 
-func (m *MemStorage) GetGaugeMetricFromMemory(metricName string) float64 {
-	m.rm.RLock()
-	metric := m.Gauge[metricName]
-	m.rm.RUnlock()
-	return metric
+func (m *LocalStorage) GetAll(ctx context.Context) (map[string]any, error) {
+	return processmap.ConvertToSingleMap(m.Gauge, m.Counter), nil
 }
 
-func (m *MemStorage) GetCountMetricFromMemory(metricName string) int64 {
-	m.rm.RLock()
-	metric := m.Counter[metricName]
-	m.rm.RUnlock()
-	return metric
-}
-
-func (m *MemStorage) CheckIfGaugeMetricPresent(metricName string) bool {
-	m.rm.RLock()
-	_, ok := m.Gauge[metricName]
-	m.rm.RUnlock()
-	return ok
-}
-
-func (m *MemStorage) CheckIfCountMetricPresent(metricName string) bool {
-	m.rm.RLock()
-	_, ok := m.Counter[metricName]
-	m.rm.RUnlock()
-	return ok
-}
-
-// iterate through memStorage
-func (m *MemStorage) GetAllMetrics() []models.Metrics {
-	metricSlice := make([]models.Metrics, 33)
-	var model models.Metrics
-	for i, v := range m.Gauge {
-		model.ID = i
-		model.MType = config.GaugeType
-
-		model.Value = &v
-		metricSlice = append(metricSlice, model)
-	}
-	for j, u := range m.Counter {
-		model.ID = j
-		model.MType = config.CountType
-		model.Delta = &u
-		metricSlice = append(metricSlice, model)
-	}
-	return metricSlice
-}
-
-// load metrics from local file
-func (m *MemStorage) LoadAllFromFile(fname string) error {
+// LoadMetricsFromFile loads metrics from the stated file.
+func (m *LocalStorage) LoadMetricsFromFile(fname string) error {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return err
@@ -114,13 +99,30 @@ func (m *MemStorage) LoadAllFromFile(fname string) error {
 	return nil
 }
 
-// SaveMetrics periodically saves metrics from memStorage.
-func (m *MemStorage) SaveAllMetrics(FlagStoreInterval int, FlagStorePath string, fname string) error {
+func (m *LocalStorage) Ping(ctx context.Context) error {
+	if m.Gauge == nil {
+		logger.Log.Info("gauge local storage not initialized")
+		return errors.New("gauge local storage not initialized")
+	}
+
+	if m.Counter == nil {
+		logger.Log.Info("counter local storage not initialized")
+		return errors.New("counter local storage not initialized")
+	}
+	return nil
+}
+
+// SaveMetrics periodically saves metrics from local storage to provided file.
+func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath string, fname string) error {
 	pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
 		time.Sleep(pauseDuration)
-		metricSlice := m.GetAllMetrics()
-		data, err := json.MarshalIndent(metricSlice, "", "  ")
+		metrics, err := m.GetAll(context.Background())
+		if err != nil {
+			return err
+		}
+
+		data, err := json.MarshalIndent(metrics, "", "  ")
 		if err != nil {
 			logger.Log.Info("marshalling error", zap.Error(err))
 			return err

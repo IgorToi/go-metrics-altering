@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-chi/chi"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
 	local "github.com/igortoigildin/go-metrics-altering/internal/storage/local"
@@ -24,12 +25,29 @@ func main() {
 		logger.Log.Fatal("error while initializing logger", zap.Error(err))
 	}
 
-	DBstorage := psql.InitPostgresRepo(ctx, cfg)
+	PGStorage := psql.InitPostgresRepo(ctx, cfg)
 	localStorage := local.InitLocalStorage()
 
-	logger.Log.Info("Running server", zap.String("address", cfg.FlagRunAddr))
+	if cfg.FlagRestore {
+		err := localStorage.LoadMetricsFromFile(cfg.FlagStorePath)
+		if err != nil {
+			logger.Log.Info("error loading metrics from the file", zap.Error(err))
+		}
+	}
 
-	http.ListenAndServe(cfg.FlagRunAddr, server.Router(ctx, cfg, DBstorage, localStorage))
+	go localStorage.SaveAllMetricsToFile(cfg.FlagStoreInterval, cfg.FlagStorePath, cfg.FlagStorePath)
+
+	logger.Log.Info("Starting server on", zap.String("address", cfg.FlagRunAddr))
+
+	var r chi.Router
+	// Check whether metrics should be saved to DB or locally.
+	if cfg.FlagDBDSN != "" {
+		r = server.Router(ctx, cfg, PGStorage)
+	} else {
+		r = server.Router(ctx, cfg, localStorage)
+	}
+
+	http.ListenAndServe(cfg.FlagRunAddr, r)
 	if err != nil {
 		logger.Log.Fatal("cannot start the server", zap.Error(err))
 	}

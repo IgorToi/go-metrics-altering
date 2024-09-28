@@ -17,23 +17,23 @@ const (
 	PollCount = "PollCount"
 )
 
-type Repository struct {
+type PGStorage struct {
 	conn *sql.DB
 }
 
-func NewRepository(conn *sql.DB) *Repository {
-	return &Repository{
+func NewPGStorage(conn *sql.DB) *PGStorage {
+	return &PGStorage{
 		conn: conn,
 	}
 }
 
-func InitPostgresRepo(ctx context.Context, cfg *config.ConfigServer) *Repository {
+func InitPostgresRepo(ctx context.Context, cfg *config.ConfigServer) *PGStorage {
 	dbDSN := cfg.FlagDBDSN
 	conn, err := sql.Open("pgx", dbDSN)
 	if err != nil {
 		logger.Log.Debug("error while connecting to DB", zap.Error(err))
 	}
-	rep := NewRepository(conn)
+	rep := NewPGStorage(conn)
 	_, err = rep.conn.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS counters (id SERIAL, name TEXT NOT NULL,"+
 		"type TEXT NOT NULL, value bigint, primary key(name));")
 	if err != nil {
@@ -47,7 +47,7 @@ func InitPostgresRepo(ctx context.Context, cfg *config.ConfigServer) *Repository
 	return rep
 }
 
-func (rep *Repository) Ping(ctx context.Context) error {
+func (rep *PGStorage) Ping(ctx context.Context) error {
 	err := rep.conn.PingContext(ctx)
 	if err != nil {
 		logger.Log.Info("connection to the database not alive", zap.Error(err))
@@ -55,7 +55,7 @@ func (rep *Repository) Ping(ctx context.Context) error {
 	return err
 }
 
-func (rep *Repository) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
+func (rep *PGStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	switch metricType {
 	case GaugeType:
 		_, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)"+
@@ -75,7 +75,7 @@ func (rep *Repository) Update(ctx context.Context, metricType string, metricName
 	return nil
 }
 
-func (rep *Repository) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
+func (rep *PGStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
 	var metric models.Metrics
 	switch metricType {
 	case GaugeType:
@@ -110,7 +110,7 @@ func (rep *Repository) Get(ctx context.Context, metricType string, metricName st
 	return metric, nil
 }
 
-func (rep *Repository) GetAll(ctx context.Context) (map[string]any, error) {
+func (rep *PGStorage) GetAll(ctx context.Context) (map[string]any, error) {
 	metrics := make(map[string]any, 33)
 	rows, err := rep.conn.QueryContext(ctx, "SELECT name, value FROM gauges WHERE type = $1", GaugeType)
 	if err != nil {

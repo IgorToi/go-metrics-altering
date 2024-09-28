@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 
 	_ "net/http/pprof" // подключаем пакет pprof
 
+	"github.com/go-chi/chi"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
@@ -185,6 +187,7 @@ func getMetric(Storage Storage) http.HandlerFunc {
 			ID:    req.ID,
 			MType: req.MType,
 		}
+
 		switch req.MType {
 		case config.GaugeType:
 			res, err := Storage.Get(ctx, req.MType, req.ID)
@@ -222,6 +225,70 @@ func getMetric(Storage Storage) http.HandlerFunc {
 		err = processjson.WriteJSON(w, http.StatusOK, resp, nil)
 		if err != nil {
 			logger.Log.Info("error encoding response", zap.Error(err))
+			return
+		}
+	})
+}
+
+func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		metricType := chi.URLParam(r, "metricType")
+		metricName := chi.URLParam(r, "metricName")
+		if metricName == "" {
+			logger.Log.Info("metricName not provided")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		metricValue := chi.URLParam(r, "metricValue")
+		switch metricType {
+		case config.GaugeType:
+			metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
+			if err != nil {
+				logger.Log.Info("error parsing metric value to float", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			LocalStorage.Update(context.TODO(), config.GaugeType, metricName, metricValueConverted)
+		case config.CountType:
+			metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
+			if err != nil {
+				logger.Log.Info("error parsing metric value to int", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			LocalStorage.Update(context.TODO(), config.CountType, metricName, metricValueConverted)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	})
+}
+
+func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		metricType := chi.URLParam(r, "metricType")
+		metricName := chi.URLParam(r, "metricName")
+
+		switch metricType {
+		case config.GaugeType:
+			metric, err := LocalStorage.Get(context.TODO(), config.GaugeType, metricName)
+			if err != nil {
+				//TODO
+			}
+			w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
+		case metricType:
+			metric, err := LocalStorage.Get(context.TODO(), config.CountType, config.PollCount)
+			w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
+			if err != nil {
+				//TODO
+			}
+		default:
+			logger.Log.Info("usupported request type", zap.String("type", metricType))
+			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 	})
