@@ -277,14 +277,18 @@ func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
 		case config.GaugeType:
 			metric, err := LocalStorage.Get(context.TODO(), config.GaugeType, metricName)
 			if err != nil {
-				//TODO
+				logger.Log.Info("error while loading metric", zap.String("metric name", metricName))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 			w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
 		case metricType:
 			metric, err := LocalStorage.Get(context.TODO(), config.CountType, config.PollCount)
 			w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
 			if err != nil {
-				//TODO
+				logger.Log.Info("error while loading metric", zap.String("metric name", metricName))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		default:
 			logger.Log.Info("usupported request type", zap.String("type", metricType))
