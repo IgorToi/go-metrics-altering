@@ -34,10 +34,14 @@ func InitLocalStorage() *LocalStorage {
 
 func (m *LocalStorage) SetStrategy(metricType string) {
 	if metricType == config.CountType {
-		count := count{}
+		count := count{
+			Counter: m.Counter,
+		}
 		m.strategy = &count
 	} else {
-		gauge := gauge{}
+		gauge := gauge{
+			Gauge: m.Gauge,
+		}
 		m.strategy = &gauge
 	}
 }

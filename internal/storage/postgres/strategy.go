@@ -20,17 +20,10 @@ type count struct {
 }
 
 func (c *count) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	v, _ := metricValue.(*int64)
-	var temp int64
-	if v == nil {
-		temp = int64(0)
-	} else {
-		temp = *v
-	}
 	_, err := c.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)"+
-		"ON CONFLICT (name) DO UPDATE SET value = counters.value + $3", metricName, CountType, temp)
+		"ON CONFLICT (name) DO UPDATE SET value = counters.value + $3", metricName, metricType, metricValue)
 	if err != nil {
-		logger.Log.Debug("error while saving counter metric to the db", zap.Error(err))
+		logger.Log.Info("error while saving counter metric to the db", zap.Error(err))
 		return err
 	}
 	return nil
@@ -42,10 +35,10 @@ func (c *count) Get(ctx context.Context, metricType string, metricName string) (
 		&metric.ID, &metric.MType, &metric.Delta)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		logger.Log.Debug("no rows selected", zap.Error(err))
+		logger.Log.Info("no rows selected", zap.Error(err))
 		return metric, err
 	case err != nil:
-		logger.Log.Debug("error while obtaining metrics", zap.Error(err))
+		logger.Log.Info("error while obtaining metrics", zap.Error(err))
 		return metric, err
 	}
 	return metric, nil
@@ -56,17 +49,10 @@ type gauge struct {
 }
 
 func (g *gauge) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	v, _ := metricValue.(*float64)
-	var temp float64
-	if v == nil {
-		temp = float64(0)
-	} else {
-		temp = *v
-	}
 	_, err := g.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)"+
-		"ON CONFLICT (name) DO UPDATE SET value = $3", metricName, GaugeType, temp)
+		"ON CONFLICT (name) DO UPDATE SET value = $3", metricName, metricType, metricValue)
 	if err != nil {
-		logger.Log.Debug("error while saving gauge metric to the db", zap.Error(err))
+		logger.Log.Info("error while saving gauge metric to the db", zap.Error(err))
 		return err
 	}
 	return nil
@@ -78,10 +64,10 @@ func (g *gauge) Get(ctx context.Context, metricType string, metricName string) (
 		&metric.ID, &metric.MType, &metric.Value)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		logger.Log.Debug("no rows selected", zap.Error(err))
+		logger.Log.Info("no rows selected", zap.Error(err))
 		return metric, err
 	case err != nil:
-		logger.Log.Debug("error while obtaining metrics", zap.Error(err))
+		logger.Log.Info("error while obtaining metrics", zap.Error(err))
 		return metric, err
 	}
 	return metric, nil
