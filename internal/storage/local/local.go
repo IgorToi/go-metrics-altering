@@ -18,9 +18,10 @@ import (
 const pollCount = "PollCount"
 
 type LocalStorage struct {
-	rm      sync.RWMutex
-	Gauge   map[string]float64
-	Counter map[string]int64
+	rm       sync.RWMutex
+	Gauge    map[string]float64
+	Counter  map[string]int64
+	strategy Strategy
 }
 
 func InitLocalStorage() *LocalStorage {
@@ -31,62 +32,24 @@ func InitLocalStorage() *LocalStorage {
 	return &m
 }
 
-func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	switch metricType {
-	case config.GaugeType:
-		if m.Gauge == nil {
-			m.Gauge = make(map[string]float64)
-		}
-		m.rm.Lock()
-		v, _ := metricValue.(*float64)
-		var temp float64
-		if v == nil {
-			temp = float64(0)
-		} else {
-			temp = *v
-		}
-		m.Gauge[metricName] = temp
-		m.rm.Unlock()
-	case config.CountType:
-		if m.Counter == nil {
-			m.Counter = make(map[string]int64)
-		}
-		m.rm.Lock()
-		v, _ := metricValue.(*int64)
-		var temp int64
-		if v == nil {
-			temp = int64(0)
-		} else {
-			temp = *v
-		}
-		m.Counter[metricName] += temp
-		m.rm.Unlock()
-	default:
-		return errors.New("undefined metric type")
+func (l *LocalStorage) SetStrategy(metricType string) {
+	if metricType == config.CountType {
+		count := count{}
+		l.strategy = &count
+	} else {
+		gauge := gauge{}
+		l.strategy = &gauge
 	}
-	return nil
+}
+
+func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
+	m.SetStrategy(metricType)
+	return m.strategy.Update(metricType, metricName, metricValue)
 }
 
 func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
-	var metric models.Metrics
-
-	switch metricType {
-	case config.GaugeType:
-		m.rm.RLock()
-		v := m.Gauge[metricName]
-		metric.Value = &v
-		m.rm.RUnlock()
-	case config.CountType:
-		m.rm.RLock()
-		d := m.Counter[metricName]
-		metric.Delta = &d
-		m.rm.RUnlock()
-	default:
-		return metric, errors.New("undefined metric type")
-	}
-	metric.MType = metricType
-
-	return metric, nil
+	m.SetStrategy(metricType)
+	return m.strategy.Get(metricType, metricName)
 }
 
 func (m *LocalStorage) GetAll(ctx context.Context) (map[string]any, error) {
