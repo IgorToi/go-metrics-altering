@@ -8,10 +8,9 @@ import (
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
-
-//TODO
 
 const (
 	GaugeType = "gauge"

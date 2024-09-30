@@ -38,14 +38,28 @@ func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName
 			m.Gauge = make(map[string]float64)
 		}
 		m.rm.Lock()
-		m.Gauge[metricName] = metricValue.(float64)
+		v, _ := metricValue.(*float64)
+		var temp float64
+		if v == nil {
+			temp = float64(0)
+		} else {
+			temp = *v
+		}
+		m.Gauge[metricName] = temp
 		m.rm.Unlock()
 	case config.CountType:
 		if m.Counter == nil {
 			m.Counter = make(map[string]int64)
 		}
 		m.rm.Lock()
-		m.Counter[metricName] += metricValue.(int64)
+		v, _ := metricValue.(*int64)
+		var temp int64
+		if v == nil {
+			temp = int64(0)
+		} else {
+			temp = *v
+		}
+		m.Counter[metricName] += temp
 		m.rm.Unlock()
 	default:
 		return errors.New("undefined metric type")
