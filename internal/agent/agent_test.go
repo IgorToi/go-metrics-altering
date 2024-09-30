@@ -213,3 +213,30 @@ func TestSendJSONCounter(t *testing.T) {
 		})
 	}
 }
+
+// func TestSendMetrics(t *testing.T) {
+// 	cfg,_ := config.LoadConfig()
+// 	a := make(<-chan models.Metrics, 0)
+// 	type args struct {
+// 		metricsChan <-chan models.Metrics
+// 		cfg         *config.ConfigAgent
+// 	}
+// 	tests := []struct {
+// 		name string
+// 		args args
+// 	}{
+// 		// TODO: Add test cases.
+// 		{
+// 			name: "first",
+// 			args: args{
+// 				cfg: cfg,
+// 				metricsChan: a,
+// 			},
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			SendMetrics(tt.args.metricsChan, tt.args.cfg)
+// 		})
+// 	}
+// }

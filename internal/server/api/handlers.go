@@ -232,20 +232,23 @@ func getMetric(Storage Storage) http.HandlerFunc {
 
 func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
+
 		if metricName == "" {
 			logger.Log.Info("metricName not provided")
-			w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
+		
 		metricValue := chi.URLParam(r, "metricValue")
+
 		switch metricType {
 		case config.GaugeType:
 			metricValueConverted, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
+				
 				logger.Log.Info("error parsing metric value to float", zap.Error(err))
 				w.WriteHeader(http.StatusBadRequest)
 				return
