@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -19,12 +18,23 @@ const (
 )
 
 type PGStorage struct {
-	conn *sql.DB
+	conn     *sql.DB
+	strategy Strategy
 }
 
 func NewPGStorage(conn *sql.DB) *PGStorage {
 	return &PGStorage{
 		conn: conn,
+	}
+}
+
+func (pg *PGStorage) SetStrategy(metricType string) {
+	if metricType == config.CountType {
+		count := count{}
+		pg.strategy = &count
+	} else {
+		gauge := gauge{}
+		pg.strategy = &gauge
 	}
 }
 
@@ -57,58 +67,13 @@ func (rep *PGStorage) Ping(ctx context.Context) error {
 }
 
 func (rep *PGStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	switch metricType {
-	case GaugeType:
-		_, err := rep.conn.ExecContext(ctx, "INSERT INTO gauges(name, type, value) VALUES($1, $2, $3)"+
-			"ON CONFLICT (name) DO UPDATE SET value = $3", metricName, GaugeType, metricValue)
-		if err != nil {
-			logger.Log.Debug("error while saving gauge metric to the db", zap.Error(err))
-			return err
-		}
-	case CountType:
-		_, err := rep.conn.ExecContext(ctx, "INSERT INTO counters(name, type, value) VALUES($1, $2, $3)"+
-			"ON CONFLICT (name) DO UPDATE SET value = counters.value + $3", metricName, CountType, metricValue)
-		if err != nil {
-			logger.Log.Debug("error while saving counter metric to the db", zap.Error(err))
-			return err
-		}
-	}
-	return nil
+	rep.SetStrategy(metricType)
+	return rep.strategy.Update(ctx, metricType, metricName, metricValue)
 }
 
 func (rep *PGStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
-	var metric models.Metrics
-	switch metricType {
-	case GaugeType:
-		var metric models.Metrics
-		err := rep.conn.QueryRowContext(ctx, "SELECT name, type, value FROM gauges WHERE name = $1", metricName).Scan(
-			&metric.ID, &metric.MType, &metric.Value)
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			logger.Log.Debug("no rows selected", zap.Error(err))
-			return metric, err
-		case err != nil:
-			logger.Log.Debug("error while obtaining metrics", zap.Error(err))
-			return metric, err
-		default:
-			return metric, nil
-		}
-	case CountType:
-		var metric models.Metrics
-		err := rep.conn.QueryRowContext(ctx, "SELECT name, type, value FROM counters WHERE name = $1", metricName).Scan(
-			&metric.ID, &metric.MType, &metric.Delta)
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			logger.Log.Debug("no rows selected", zap.Error(err))
-			return metric, err
-		case err != nil:
-			logger.Log.Debug("error while obtaining metrics", zap.Error(err))
-			return metric, err
-		default:
-			return metric, nil
-		}
-	}
-	return metric, nil
+	rep.SetStrategy(metricType)
+	return rep.strategy.Get(ctx, metricType, metricName)
 }
 
 func (rep *PGStorage) GetAll(ctx context.Context) (map[string]any, error) {
