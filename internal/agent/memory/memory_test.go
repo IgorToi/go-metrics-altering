@@ -4,39 +4,33 @@
 package memory
 
 import (
-	"runtime"
-	"sync"
 	"testing"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMemoryStats_UpdateRunTimeStat(t *testing.T) {
-	type fields struct {
-		GaugeMetrics  map[string]float64
-		CounterMetric int
-		RunTimeMem    *runtime.MemStats
-		rwm           sync.RWMutex
-	}
-	type args struct {
-		cfg *config.ConfigAgent
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &MemoryStats{
-				GaugeMetrics:  tt.fields.GaugeMetrics,
-				CounterMetric: tt.fields.CounterMetric,
-				RunTimeMem:    tt.fields.RunTimeMem,
-				rwm:           tt.fields.rwm,
-			}
-			m.UpdateRunTimeStat(tt.args.cfg)
-		})
-	}
+	m := NewMemoryStats()
+	cfg, _ := config.LoadConfig()
+	cfg.PauseDuration = 0
+	go m.UpdateRunTimeStat(cfg)
+
+	time.Sleep(1 * time.Second)
+
+	assert.Equal(t, 28, len(m.GaugeMetrics))
+}
+
+func TestMemoryStats_UpdateCPURAMStat(t *testing.T) {
+	m := NewMemoryStats()
+
+	cfg := config.ConfigAgent{}
+	cfg.PauseDuration = 0
+
+	go m.UpdateCPURAMStat(&cfg)
+
+	time.Sleep(1 * time.Second)
+
+	assert.Equal(t, 3, len(m.GaugeMetrics))
 }

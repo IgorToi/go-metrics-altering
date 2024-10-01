@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"sync"
-	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -18,7 +16,7 @@ import (
 const pollCount = "PollCount"
 
 type LocalStorage struct {
-	rm       sync.RWMutex
+	//rm       sync.RWMutex
 	Gauge    map[string]float64
 	Counter  map[string]int64
 	strategy Strategy
@@ -95,9 +93,9 @@ func (m *LocalStorage) Ping(ctx context.Context) error {
 
 // SaveMetrics periodically saves metrics from local storage to provided file.
 func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath string, fname string) error {
-	pauseDuration := time.Duration(FlagStoreInterval) * time.Second
+	//pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
-		time.Sleep(pauseDuration)
+		//time.Sleep(pauseDuration)
 		metrics, err := m.GetAll(context.Background())
 		if err != nil {
 			return err

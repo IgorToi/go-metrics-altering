@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -284,15 +283,21 @@ func TestLocalStorage_LoadMetricsFromFile(t *testing.T) {
 }
 
 func TestLocalStorage_SaveAllMetricsToFile(t *testing.T) {
+	var fileName string = "temp"
 	m := InitLocalStorage()
 	m.Counter["count_metric"] = int64(25)
 	m.Gauge["gauge_metric"] = float64(50)
 
-	go m.SaveAllMetricsToFile(0, ".", "temp")
-	
-	time.Sleep(1 * time.Second)
+	go m.SaveAllMetricsToFile(0, ".", fileName)
+
+	var data []byte
+	for data == nil {
+		data, _ = os.ReadFile(fileName)
+	}
+
 	l := InitLocalStorage()
-	_ = l.LoadMetricsFromFile("temp")
+	_ = l.LoadMetricsFromFile(fileName)
 	assert.Equal(t, m.Counter["count_metric"], l.Counter["count_metric"])
 	assert.Equal(t, m.Counter["gauge_metric"], l.Counter["gauge_metric"])
+	_ = os.Remove(fileName)
 }
