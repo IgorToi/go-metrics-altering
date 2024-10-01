@@ -103,7 +103,26 @@ func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath
 			return err
 		}
 
-		data, err := json.MarshalIndent(metrics, "", "  ")
+		slice := []models.Metrics{}
+
+		for key, v := range metrics {
+			var metric models.Metrics
+			if val, ok := v.(float64); ok {
+				metric.ID = key
+				metric.Value = &val
+				metric.MType = config.GaugeType
+				slice = append(slice, metric)
+				continue
+			}
+			if val, ok := v.(int64); ok {
+				metric.ID = key
+				metric.Delta = &val
+				metric.MType = config.CountType
+				slice = append(slice, metric)
+			}
+		}
+
+		data, err := json.MarshalIndent(slice, "", "  ")
 		if err != nil {
 			logger.Log.Info("marshalling error", zap.Error(err))
 			return err
