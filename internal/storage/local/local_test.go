@@ -283,7 +283,7 @@ func TestLocalStorage_LoadMetricsFromFile(t *testing.T) {
 }
 
 func TestLocalStorage_SaveAllMetricsToFile(t *testing.T) {
-	var fileName string = "temp"
+	var fileName = "temp"
 	m := InitLocalStorage()
 	m.Counter["count_metric"] = int64(25)
 	m.Gauge["gauge_metric"] = float64(50)
