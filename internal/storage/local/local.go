@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"sync"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -17,7 +16,7 @@ import (
 const pollCount = "PollCount"
 
 type LocalStorage struct {
-	rm       sync.RWMutex
+	//rm       sync.RWMutex
 	Gauge    map[string]float64
 	Counter  map[string]int64
 	strategy Strategy
@@ -26,7 +25,7 @@ type LocalStorage struct {
 func InitLocalStorage() *LocalStorage {
 	var m LocalStorage
 	m.Counter = make(map[string]int64)
-	m.Counter[pollCount] = int64(0)
+	m.Counter[pollCount] = 0
 	m.Gauge = make(map[string]float64)
 	return &m
 }
@@ -47,24 +46,12 @@ func (m *LocalStorage) SetStrategy(metricType string) {
 
 func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	m.SetStrategy(metricType)
-	m.rm.Lock()
-	err := m.strategy.Update(metricType, metricName, metricValue)
-	if err != nil {
-		logger.Log.Info("error" , zap.Error(err))
-	}
-	m.rm.Unlock()
-	return err
+	return m.strategy.Update(metricType, metricName, metricValue)
 }
 
 func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
 	m.SetStrategy(metricType)
-	m.rm.Lock()
-	metric, err := m.strategy.Get(metricType, metricName)
-	if err != nil {
-		logger.Log.Info("error" , zap.Error(err))
-	}
-	m.rm.Unlock()
-	return metric, err
+	return m.strategy.Get(metricType, metricName)
 }
 
 func (m *LocalStorage) GetAll(ctx context.Context) (map[string]any, error) {
@@ -105,15 +92,13 @@ func (m *LocalStorage) Ping(ctx context.Context) error {
 }
 
 // SaveMetrics periodically saves metrics from local storage to provided file.
-func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath string, fname string) {
+func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath string, fname string) error {
 	//pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
 		//time.Sleep(pauseDuration)
-		m.rm.Lock()
 		metrics, err := m.GetAll(context.Background())
-		m.rm.Unlock()
 		if err != nil {
-			logger.Log.Error("error while reading metrics from map", zap.Error(err))
+			return err
 		}
 
 		slice := []models.Metrics{}
@@ -137,12 +122,14 @@ func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath
 
 		data, err := json.MarshalIndent(slice, "", "  ")
 		if err != nil {
-			logger.Log.Error("marshalling error", zap.Error(err))
+			logger.Log.Info("marshalling error", zap.Error(err))
+			return err
 		}
 
 		err = os.WriteFile(fname, data, 0606)
 		if err != nil {
-			logger.Log.Error("error saving metrics to the file", zap.Error(err))
+			logger.Log.Info("error saving metrics to the file", zap.Error(err))
+			return err
 		}
 	}
 }

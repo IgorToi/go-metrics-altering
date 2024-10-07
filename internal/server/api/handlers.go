@@ -284,19 +284,10 @@ func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			metricRes := []byte([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
-			logger.Log.Info("received reqeust:", zap.String("metric value", string(metricRes)))
-			w.WriteHeader(http.StatusOK)
-
 			w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
 		case metricType:
-
 			metric, err := LocalStorage.Get(context.TODO(), config.CountType, config.PollCount)
-			metricRes := []byte(strconv.FormatInt(*metric.Delta, 10))
-			logger.Log.Info("received reqeust:", zap.String("metric value", string(metricRes)))
-			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
-
 			if err != nil {
 				logger.Log.Info("error while loading metric", zap.String("metric name", metricName))
 				w.WriteHeader(http.StatusInternalServerError)
