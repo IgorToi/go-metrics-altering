@@ -3,6 +3,7 @@ package compress
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -36,7 +37,12 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 }
 
 func (c *compressWriter) Close() error {
-	return c.zw.Close()
+	err := c.zw.Close()
+	if err != nil {
+		fmt.Println("!!!")
+		fmt.Println(err)
+	}
+	return err
 }
 
 type compressReader struct {
