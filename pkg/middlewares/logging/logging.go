@@ -1,10 +1,12 @@
-package server
+// Package logging provides middleware for logging http requests and responses.
+
+package logging
 
 import (
 	"net/http"
 	"time"
 
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 
 	"go.uber.org/zap"
 )

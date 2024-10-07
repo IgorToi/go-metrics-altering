@@ -1,4 +1,5 @@
-package server
+// Package compress provides middleware for request compression.
+package compress
 
 import (
 	"compress/gzip"
@@ -65,7 +66,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func gzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
+func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ow := w
 		acceptEncoding := r.Header.Get("Accept-Encoding")

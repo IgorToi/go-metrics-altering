@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"os"
 	"strconv"
+	"time"
 )
 
 const (
@@ -25,6 +26,7 @@ type ConfigServer struct {
 	FlagRestore       bool
 	FlagDBDSN         string
 	FlagHashKey       string
+	ContextTimout     time.Duration
 }
 
 func LoadConfig() (*ConfigServer, error) {
@@ -74,6 +76,7 @@ func LoadConfig() (*ConfigServer, error) {
 	if !cfg.validate() {
 		return nil, errCfgVarEmpty
 	}
+	cfg.ContextTimout = 10 * time.Second
 	return cfg, err
 }
 

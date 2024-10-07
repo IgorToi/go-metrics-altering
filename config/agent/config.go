@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +37,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&cfg.FlagLogLevel, "u", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent")
-	flag.IntVar(&cfg.FlagPollInterval, "p", 2, "frequency of metrics being received from the runtime package")
+	flag.IntVar(&cfg.FlagPollInterval, "p", 0, "frequency of metrics being received from the runtime package")
 	flag.IntVar(&cfg.FlagRateLimit, "l", 3, "rate limit")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.Parse()

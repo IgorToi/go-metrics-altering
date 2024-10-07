@@ -3,6 +3,7 @@ package agent
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,12 +11,13 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
 
 const urlParams = "/update/{metricType}/{metricName}/{metricValue}"
 
+// SendJSONCounter accepts and sends counter metrics in URL format to predefined by config server address.
 func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 	agent := resty.New()
 	req := agent.R().SetPathParams(map[string]string{
@@ -48,9 +50,12 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 			return err
 		}
 	}
+
+	logger.Log.Info("sent url counter metric:", zap.Int("conuter", counter))
 	return nil
 }
 
+// SendURLGauge accepts and sends gauge metrics in URL format to predefined by config server address.
 func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) error {
 	agent := resty.New()
 	req := agent.R().SetPathParams(map[string]string{
@@ -58,6 +63,12 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 		"metricName":  metricName,
 		"metricValue": strconv.FormatFloat(value, 'f', 6, 64),
 	}).SetHeader("Content-Type", "text/plain")
+
+	if metricName == "" {
+		logger.Log.Info("metric data not complete")
+		return errors.New("metric data not complete")
+	}
+
 	// signing metric value with sha256 and setting header accordingly
 	if cfg.FlagHashKey != "" {
 		key := []byte(cfg.FlagHashKey)
@@ -83,5 +94,7 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 			return err
 		}
 	}
+
+	logger.Log.Info("sent JSON gauge metric:", zap.Float64(metricName, value))
 	return nil
 }

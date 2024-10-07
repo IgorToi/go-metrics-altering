@@ -1,4 +1,5 @@
-package server
+// Package auth provides middleware for basic authorization.
+package auth
 
 import (
 	"bytes"
@@ -9,10 +10,11 @@ import (
 	"net/http"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	"github.com/igortoigildin/go-metrics-altering/internal/logger"
+	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 )
 
-func auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
+// Auth middleware provides authorization based on HashSHA256.
+func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := []byte(cfg.FlagHashKey)
 		if len(key) > 0 && r.Header.Get("HashSHA256") != "" {

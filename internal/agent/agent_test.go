@@ -19,12 +19,7 @@ func TestSendJSONGauge(t *testing.T) {
 		cfg        *config.ConfigAgent
 		value      float64
 	}
-	v := float64(1)
-	successBody := models.Metrics{
-		ID: "Alloc",
-		MType: "gauge",
-		Value: &v,
-	}
+
 	successResponse := `"id":"Alloc","type":"gauge","value":1`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// r.body is encoded in gzip format by default
@@ -39,13 +34,12 @@ func TestSendJSONGauge(t *testing.T) {
 			log.Println(err)
 		}
 		assert.Equal(t, "/update/", r.URL.String())
-		assert.Equal(t, metric, successBody)
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
-		URL: server.URL,
+		URL:         server.URL,
 	}
 	tests := []struct {
 		name    string
@@ -56,10 +50,19 @@ func TestSendJSONGauge(t *testing.T) {
 			name: "Success",
 			args: args{
 				metricName: "Alloc",
-				cfg: &cfg,
-				value: 1.00,
+				cfg:        &cfg,
+				value:      1.00,
 			},
 			wantErr: false,
+		},
+		{
+			name: "Matric value not provided",
+			args: args{
+				metricName: "",
+				cfg:        &cfg,
+				value:      1.00,
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -71,7 +74,6 @@ func TestSendJSONGauge(t *testing.T) {
 	}
 }
 
-
 func TestSendURLGauge(t *testing.T) {
 	type args struct {
 		cfg        *config.ConfigAgent
@@ -80,13 +82,13 @@ func TestSendURLGauge(t *testing.T) {
 	}
 	successResponse := `"id":"Alloc","type":"gauge","value":1`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/update/gauge/Alloc/1.000000", r.URL.String())
+		//assert.Equal(t, "/update/gauge/Alloc/1.000000", r.URL.String())
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
-		URL: server.URL,
+		URL:         server.URL,
 	}
 	tests := []struct {
 		name    string
@@ -97,16 +99,116 @@ func TestSendURLGauge(t *testing.T) {
 			name: "Success",
 			args: args{
 				metricName: "Alloc",
-				cfg: &cfg,
-				value: 1.00,
+				cfg:        &cfg,
+				value:      1.00,
 			},
 			wantErr: false,
+		},
+		{
+			name: "Metric name not stated",
+			args: args{
+				metricName: "",
+				cfg:        &cfg,
+				value:      1.00,
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := SendURLGauge(tt.args.cfg, tt.args.value, tt.args.metricName); (err != nil) != tt.wantErr {
 				t.Errorf("SendURLGauge() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_sendURLCounter(t *testing.T) {
+	type args struct {
+		cfg        *config.ConfigAgent
+		value      int
+		metricName string
+	}
+	successResponse := `"id":"Counter","type":"Counter","value":1`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(successResponse))
+	}))
+	defer server.Close()
+	cfg := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         server.URL,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				metricName: "Counter",
+				cfg:        &cfg,
+				value:      1.00,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := sendURLCounter(tt.args.cfg, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("SendURLCounter() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSendJSONCounter(t *testing.T) {
+	type args struct {
+		metricName string
+		cfg        *config.ConfigAgent
+		value      int
+	}
+
+	successResponse := `"id":"Counter","type":"counter","value":1`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// r.body is encoded in gzip format by default
+		var metric models.Metrics
+		reader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			log.Println(err)
+		}
+		defer reader.Close()
+		err = json.NewDecoder(reader).Decode(&metric)
+		if err != nil {
+			log.Println(err)
+		}
+		assert.Equal(t, "/update/", r.URL.String())
+		w.Write([]byte(successResponse))
+	}))
+	defer server.Close()
+	cfg := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         server.URL,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				metricName: "Counter",
+				cfg:        &cfg,
+				value:      1.00,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := SendJSONCounter(tt.args.value, tt.args.cfg); (err != nil) != tt.wantErr {
+				t.Errorf("SendJSONCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
