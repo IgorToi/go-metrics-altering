@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	ctx := context.Background() // TODO: to be replaced
+	ctx := context.Background()
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -22,9 +22,10 @@ func main() {
 	}
 
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		logger.Log.Fatal("error while initializing logger", zap.Error(err)) // TODO: to be updated
+		logger.Log.Fatal("error while initializing logger", zap.Error(err))
 	}
-	
+
+	PGStorage := psql.InitPostgresRepo(ctx, cfg)
 	localStorage := local.InitLocalStorage()
 
 	if cfg.FlagRestore {
@@ -41,12 +42,8 @@ func main() {
 	var r chi.Router
 	// Check whether metrics should be saved to DB or locally.
 	if cfg.FlagDBDSN != "" {
-		PGStorage := psql.InitPostgresRepo(ctx, cfg)
 		r = server.Router(ctx, cfg, PGStorage)
-
-		logger.Log.Info("Starting PG")
 	} else {
-		logger.Log.Info("Starting Local")
 		r = server.Router(ctx, cfg, localStorage)
 	}
 
