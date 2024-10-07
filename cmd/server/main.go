@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx := context.Background() // TODO: to be replaced
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		logger.Log.Fatal("error while initializing logger", zap.Error(err))
+		logger.Log.Fatal("error while initializing logger", zap.Error(err)) // TODO: to be updated
 	}
 
 	PGStorage := psql.InitPostgresRepo(ctx, cfg)
