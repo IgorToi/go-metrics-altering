@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -237,8 +236,6 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
-		fmt.Println("111", metricName)
-
 		if metricName == "" {
 			logger.Log.Info("metricName not provided")
 			w.WriteHeader(http.StatusBadRequest)
@@ -246,8 +243,6 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 		}
 
 		metricValue := chi.URLParam(r, "metricValue")
-
-		fmt.Println("111", metricValue)
 
 		switch metricType {
 		case config.GaugeType:
@@ -280,8 +275,6 @@ func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
 
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
-
-		fmt.Println("222", metricName)
 
 		switch metricType {
 		case config.GaugeType:
