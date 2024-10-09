@@ -258,7 +258,12 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			LocalStorage.Update(context.TODO(), config.GaugeType, metricName, metricValueConverted)
+
+			err = LocalStorage.Update(context.TODO(), config.GaugeType, metricName, metricValueConverted)
+			if err != nil {
+				logger.Log.Info("error while updating", zap.Float64(metricName, metricValueConverted))
+			}
+
 		case config.CountType:
 			metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
@@ -266,7 +271,11 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			LocalStorage.Update(context.TODO(), config.CountType, metricName, metricValueConverted)
+			err = LocalStorage.Update(context.TODO(), config.CountType, metricName, metricValueConverted)
+			if err != nil {
+				logger.Log.Info("error while updating", zap.Int64(metricName, metricValueConverted))
+			}
+
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -281,7 +290,7 @@ func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
-		fmt.Println("222", metricName)
+		
 
 		switch metricType {
 		case config.GaugeType:
@@ -291,6 +300,7 @@ func valuePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+			fmt.Println("222", metric)
 			metricRes := []byte([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
 			logger.Log.Info("received reqeust:", zap.String("metric value", string(metricRes)))
 			w.WriteHeader(http.StatusOK)
