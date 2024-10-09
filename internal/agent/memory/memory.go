@@ -42,10 +42,12 @@ func NewMemoryStats() *MemoryStats {
 func (m *MemoryStats) ReadMetrics(cfg *config.ConfigAgent, metricsChan chan models.Metrics) {
 	for {
 		time.Sleep(cfg.PauseDuration)
+		m.rwm.Lock()
 		for name, value := range m.GaugeMetrics {
 			metric := models.GaugeConstructor(value, name)
 			metricsChan <- metric
 		}
+		m.rwm.Unlock()
 		metric := models.CounterConstructor(int64(m.CounterMetric))
 		metricsChan <- metric
 	}

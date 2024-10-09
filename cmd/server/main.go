@@ -22,10 +22,10 @@ func main() {
 	}
 
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		logger.Log.Fatal("error while initializing logger", zap.Error(err))
+		logger.Log.Fatal("error while initializing logger", zap.Error(err)) // to be updated
 	}
 
-	PGStorage := psql.InitPostgresRepo(ctx, cfg)
+	
 	localStorage := local.InitLocalStorage()
 
 	if cfg.FlagRestore {
@@ -42,6 +42,7 @@ func main() {
 	var r chi.Router
 	// Check whether metrics should be saved to DB or locally.
 	if cfg.FlagDBDSN != "" {
+		PGStorage := psql.InitPostgresRepo(ctx, cfg)
 		r = server.Router(ctx, cfg, PGStorage)
 	} else {
 		r = server.Router(ctx, cfg, localStorage)
