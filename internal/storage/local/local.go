@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 
@@ -48,14 +47,13 @@ func (m *LocalStorage) SetStrategy(metricType string) {
 
 func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
 	m.SetStrategy(metricType)
-	fmt.Println("UPDATING", metricValue)
+	m.rm.Lock()
 	err := m.strategy.Update(metricType, metricName, metricValue)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		logger.Log.Info("error" , zap.Error(err))
 	}
-	fmt.Println(m.Counter, m.Gauge)
-	return nil
+	m.rm.Unlock()
+	return err
 }
 
 func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
