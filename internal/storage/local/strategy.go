@@ -2,6 +2,7 @@ package local
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -22,18 +23,25 @@ func (c *count) Update(metricType string, metricName string, metricValue any) er
 		c.Counter = make(map[string]int64)
 	}
 	c.rm.Lock()
-	v, ok := metricValue.(*int64)
+
+	fmt.Printf("%v", reflect.TypeOf(metricValue))
+
+	v, ok := metricValue.(int64)
 	if !ok {
 		fmt.Println("FALSE")
 	}
-	var temp int64
-	if v == nil {
-		temp = int64(0)
-	} else {
-		temp = *v
+	_, ok = metricValue.(float64)
+	if !ok {
+		fmt.Println("SECOND FALSE")
 	}
-	fmt.Println("RESULT")
-	c.Counter[metricName] += temp
+	// var temp int64
+	// if v == nil {
+	// 	temp = int64(0)
+	// } else {
+	// 	temp = *v
+	// }
+	fmt.Println("RESULT", v)
+	c.Counter[metricName] += v
 	c.rm.Unlock()
 	return nil
 }
