@@ -253,7 +253,10 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			LocalStorage.Update(context.TODO(), config.GaugeType, metricName, metricValueConverted)
+			err = LocalStorage.Update(context.TODO(), config.GaugeType, metricName, metricValueConverted)
+			if err != nil {
+				logger.Log.Error("error while updating metric", zap.Error(err))
+			}
 		case config.CountType:
 			metricValueConverted, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
@@ -261,7 +264,10 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			LocalStorage.Update(context.TODO(), config.CountType, metricName, metricValueConverted)
+			err = LocalStorage.Update(context.TODO(), config.CountType, metricName, metricValueConverted)
+			if err != nil {
+				logger.Log.Error("error while updating metric", zap.Error(err))
+			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			return
