@@ -22,7 +22,7 @@ func main() {
 	}
 
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		logger.Log.Fatal("error while initializing logger", zap.Error(err))
+		logger.Log.Fatal("error while initializing logger", zap.Error(err)) // to be updated
 	}
 
 	
