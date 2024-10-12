@@ -15,7 +15,7 @@ func TestLocalStorage_SetStrategy(t *testing.T) {
 	type fields struct {
 		Gauge    map[string]float64
 		Counter  map[string]int64
-		strategy Strategy
+		strategy MetricAlgo
 	}
 
 	tests := []struct {

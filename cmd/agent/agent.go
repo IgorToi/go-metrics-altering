@@ -23,10 +23,12 @@ func main() {
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		logger.Log.Fatal("error while logading config", zap.Error(err))
+		logger.Log.Info("error while logading config", zap.Error(err))
+		return
 	}
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
 		logger.Log.Fatal("error while initializing logger", zap.Error(err))
+		return
 	}
 
 	logger.Log.Info("loading metrics...")

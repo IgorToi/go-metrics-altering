@@ -27,11 +27,13 @@ func main() {
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal("error while logading config", err)
+		log.Println("error while logading config", err)
+		return
 	}
 
-	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		log.Fatal("error while initializing logger", err)
+	if err = logger.Initialize(cfg.FlagLogLevel); err != nil {
+		log.Println("error while initializing logger", err)
+		return
 	}
 
 	var r chi.Router
@@ -40,8 +42,9 @@ func main() {
 
 	logger.Log.Info("Starting server on", zap.String("address", cfg.FlagRunAddr))
 
-	http.ListenAndServe(cfg.FlagRunAddr, r)
+	err = http.ListenAndServe(cfg.FlagRunAddr, r)
 	if err != nil {
-		logger.Log.Fatal("cannot start the server", zap.Error(err))
+		logger.Log.Error("cannot start the server", zap.Error(err))
+		return
 	}
 }

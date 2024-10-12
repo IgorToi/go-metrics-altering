@@ -1,3 +1,4 @@
+// Package local storage implementation for inmemory Storage interface.
 package local
 
 import (
@@ -20,7 +21,7 @@ type LocalStorage struct {
 	rm       sync.RWMutex
 	Gauge    map[string]float64
 	Counter  map[string]int64
-	strategy Strategy
+	strategy MetricAlgo
 }
 
 func New() *LocalStorage {
@@ -32,12 +33,12 @@ func New() *LocalStorage {
 
 func (m *LocalStorage) setMetricAlgo(metricType string) {
 	if metricType == config.CountType {
-		count := count{
+		count := counterRepo{
 			Counter: m.Counter,
 		}
 		m.strategy = &count
 	} else {
-		gauge := gauge{
+		gauge := gaugeRepo{
 			Gauge: m.Gauge,
 		}
 		m.strategy = &gauge
@@ -118,7 +119,7 @@ func (m *LocalStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-// SaveMetrics periodically saves metrics from local storage to provided file.
+// SaveAllMetricsToFile periodically saves metrics from local storage to provided file.
 func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath string, fname string) error {
 	//pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
