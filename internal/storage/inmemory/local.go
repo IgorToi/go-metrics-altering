@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"sync"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
@@ -16,21 +17,20 @@ import (
 const pollCount = "PollCount"
 
 type LocalStorage struct {
-	//rm       sync.RWMutex
+	rm       sync.RWMutex
 	Gauge    map[string]float64
 	Counter  map[string]int64
 	strategy Strategy
 }
 
-func InitLocalStorage() *LocalStorage {
-	var m LocalStorage
-	m.Counter = make(map[string]int64)
-	m.Counter[pollCount] = 0
-	m.Gauge = make(map[string]float64)
-	return &m
+func New() *LocalStorage {
+	return &LocalStorage{
+		Counter: map[string]int64{pollCount: 0},
+		Gauge: map[string]float64{},
+	}
 }
 
-func (m *LocalStorage) SetStrategy(metricType string) {
+func (m *LocalStorage) setMetricAlgo(metricType string) {
 	if metricType == config.CountType {
 		count := count{
 			Counter: m.Counter,
@@ -45,17 +45,40 @@ func (m *LocalStorage) SetStrategy(metricType string) {
 }
 
 func (m *LocalStorage) Update(ctx context.Context, metricType string, metricName string, metricValue any) error {
-	m.SetStrategy(metricType)
-	return m.strategy.Update(metricType, metricName, metricValue)
+	m.setMetricAlgo(metricType)
+
+	m.rm.Lock()
+	defer m.rm.Unlock()
+
+	err := m.strategy.Update(metricType, metricName, metricValue)
+	if err != nil {
+		logger.Log.Error("error while updating metric", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error) {
-	m.SetStrategy(metricType)
-	return m.strategy.Get(metricType, metricName)
+	m.setMetricAlgo(metricType)
+
+	m.rm.RLock()
+	defer m.rm.Unlock()
+
+	metric, err := m.strategy.Get(metricType, metricName)
+	if err != nil {
+		logger.Log.Error("error while getting metric", zap.Error(err))
+		return models.Metrics{}, err
+	}
+	return metric, nil
 }
 
 func (m *LocalStorage) GetAll(ctx context.Context) (map[string]any, error) {
-	return processmap.ConvertToSingleMap(m.Gauge, m.Counter), nil
+	m.rm.Lock()
+	defer m.rm.Unlock()
+
+	res := processmap.ConvertToSingleMap(m.Gauge, m.Counter)
+
+	return res, nil
 }
 
 // LoadMetricsFromFile loads metrics from the stated file.
@@ -68,6 +91,10 @@ func (m *LocalStorage) LoadMetricsFromFile(fname string) error {
 	if err := json.Unmarshal(data, &metricSlice); err != nil {
 		return err
 	}
+	
+	m.rm.Lock()
+	defer m.rm.Unlock()
+
 	for _, v := range metricSlice {
 		if v.MType == "gauge" {
 			m.Gauge[v.ID] = *v.Value
@@ -96,11 +123,7 @@ func (m *LocalStorage) SaveAllMetricsToFile(FlagStoreInterval int, FlagStorePath
 	//pauseDuration := time.Duration(FlagStoreInterval) * time.Second
 	for {
 		//time.Sleep(pauseDuration)
-		metrics, err := m.GetAll(context.Background())
-		if err != nil {
-			return err
-		}
-
+		metrics, _ := m.GetAll(context.Background())
 		slice := []models.Metrics{}
 
 		for key, v := range metrics {
