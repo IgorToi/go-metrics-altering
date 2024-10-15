@@ -1,4 +1,4 @@
-package checker
+package exitcheck
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestMyAnalyzer(t *testing.T) {
-	// функция analysistest.Run применяет тестируемый анализатор ErrCheckAnalyzer
+	// функция analysistest.Run применяет тестируемый анализатор ExitCheckAnalyzer
 	// к пакетам из папки testdata и проверяет ожидания
 	// ./... — проверка всех поддиректорий в testdata
 	// можно указать ./pkg1 для проверки только pkg1

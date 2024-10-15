@@ -1,5 +1,5 @@
-// Package checker defines analyzer to check whether os.Exit is used.
-package checker
+// Package exitcheck defines an Analyzer that reports os.Exit function usage.
+package exitcheck
 
 import (
 	"go/ast"
@@ -7,13 +7,16 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+//ExitCheckAnalyzer describes exitcheck analyzer and its options.
 var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "checker helps determine if os.exit exists",
-	Run:  run,
+	Run:  Run,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+// Run applies the analyzer to a package.
+// It returns an error if the analyzer failed.
+func Run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(node ast.Node) bool {
 			if x, ok := node.(*ast.CallExpr); ok {

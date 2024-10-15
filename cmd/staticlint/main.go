@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/igortoigildin/go-metrics-altering/cmd/staticlint/checker"
+	exitcheck "github.com/igortoigildin/go-metrics-altering/cmd/staticlint/checker"
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -17,30 +18,34 @@ import (
 	"honnef.co/go/tools/unused"
 )
 
-// Config — имя файла конфигурации.
+// Config — config file name.
 const Config = `config.json`
 
-// ConfigData описывает структуру файла конфигурации.
+// ConfigData defines struct with config file.
 type ConfigData struct {
 	Staticcheck []string
 }
 
 func main() {
 	appfile, err := os.Executable()
-
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
 	data, err := os.ReadFile(filepath.Join(filepath.Dir(appfile), Config))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	// cfg - JSON file with statickcheck id of checks needed for multichecker.
 	var cfg ConfigData
 	if err = json.Unmarshal(data, &cfg); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	// mychecks collects all analyzers inclueded in multichecker.
 	mychecks := []*analysis.Analyzer{
-		checker.ExitCheckAnalyzer,
+		exitcheck.ExitCheckAnalyzer,
 		printf.Analyzer,
 		shadow.Analyzer,
 		structtag.Analyzer,
@@ -52,12 +57,38 @@ func main() {
 	for _, v := range cfg.Staticcheck {
 		checks[v] = true
 	}
-	// добавляем анализаторы из staticcheck, которые указаны в файле конфигурации
+	// Add analyzers which stated in config fail.
 	for _, v := range staticcheck.Analyzers {
 		if checks[v.Analyzer.Name] {
 			mychecks = append(mychecks, v.Analyzer)
 		}
 	}
+
+	// Muiltichecker examines Go source code and reports suspicious constructs,
+	// such as Printf calls whose arguments do not align with the format
+	// string. It uses heuristics that do not guarantee all reports are
+	// genuine problems, but it can find errors not caught by the compilers.
+	//
+	// Multichecker registers the following analyzers:
+	// exitcheck	reports os.Exit function usage
+	// printf 		checks consistency of Printf format strings and arguments
+	// shadow		checks for shadowed variables
+	// structtag 	checks struct field tags are well formed
+	// errcheck		checks unchecked errors in Go code
+	// unused		finds unused code
+	// nilness		inspects the control-flow graph of an SSA function and reports 
+	// errors such as nil pointer dereferences and degenerate nil pointer comparisons
+	//
+	// By default all analyzers are run.
+	// To select specific analyzers, use the -NAME flag for each one,
+ 	// or -NAME=false to run all analyzers not explicitly disabled.
+	//
+	// For basic usage, just give the package path of interest as the first argument:
+	//
+	// multichecker cmd/testdata
+	//
+	// To check all packages beneath the current directory:
+	// multichecker ./...
 	multichecker.Main(
 		mychecks...,
 	)
