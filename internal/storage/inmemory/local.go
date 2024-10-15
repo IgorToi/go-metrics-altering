@@ -63,7 +63,7 @@ func (m *LocalStorage) Get(ctx context.Context, metricType string, metricName st
 	m.setMetricAlgo(metricType)
 
 	m.rm.RLock()
-	defer m.rm.Unlock()
+	defer m.rm.RUnlock()
 
 	metric, err := m.strategy.Get(metricType, metricName)
 	if err != nil {

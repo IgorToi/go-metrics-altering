@@ -128,13 +128,12 @@ func TestLocalStorage_Update(t *testing.T) {
 
 		switch tt.args.metricType {
 		case "gauge":
-			v, _ := tt.args.metricValue.(*float64)
-			res := *v
+			res, _ := tt.args.metricValue.(float64)
+
 
 			assert.Equal(t, res, m.Gauge[tt.args.metricName])
 		case "counter":
-			v, _ := tt.args.metricValue.(*int64)
-			res := *v
+			res, _ := tt.args.metricValue.(int64)
 
 			assert.Equal(t, res, m.Counter[tt.args.metricName])
 		}
