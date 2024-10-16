@@ -27,7 +27,7 @@ type LocalStorage struct {
 func New() *LocalStorage {
 	return &LocalStorage{
 		Counter: map[string]int64{pollCount: 0},
-		Gauge: map[string]float64{},
+		Gauge:   map[string]float64{},
 	}
 }
 
@@ -92,7 +92,7 @@ func (m *LocalStorage) LoadMetricsFromFile(fname string) error {
 	if err := json.Unmarshal(data, &metricSlice); err != nil {
 		return err
 	}
-	
+
 	m.rm.Lock()
 	defer m.rm.Unlock()
 

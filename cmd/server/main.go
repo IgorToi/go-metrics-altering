@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
-	storage "github.com/igortoigildin/go-metrics-altering/internal/storage"
+	storage "github.com/igortoigildin/go-metrics-altering/internal/server/api"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )

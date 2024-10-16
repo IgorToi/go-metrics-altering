@@ -7,7 +7,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-//ExitCheckAnalyzer describes exitcheck analyzer and its options.
+// ExitCheckAnalyzer describes exitcheck analyzer and its options.
 var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "checker helps determine if os.exit exists",

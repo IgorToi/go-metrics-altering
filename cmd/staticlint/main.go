@@ -76,12 +76,12 @@ func main() {
 	// structtag 	checks struct field tags are well formed
 	// errcheck		checks unchecked errors in Go code
 	// unused		finds unused code
-	// nilness		inspects the control-flow graph of an SSA function and reports 
+	// nilness		inspects the control-flow graph of an SSA function and reports
 	// errors such as nil pointer dereferences and degenerate nil pointer comparisons
 	//
 	// By default all analyzers are run.
 	// To select specific analyzers, use the -NAME flag for each one,
- 	// or -NAME=false to run all analyzers not explicitly disabled.
+	// or -NAME=false to run all analyzers not explicitly disabled.
 	//
 	// For basic usage, just give the package path of interest as the first argument:
 	//
