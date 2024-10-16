@@ -258,13 +258,6 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 
 		metricType := r.PathValue("metricType")
 		metricName := r.PathValue("metricName")
-
-		if metricName == "" {
-			logger.Log.Error("metricName not provided")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		metricValue := r.PathValue("metricValue")
 
 		switch metricType {
