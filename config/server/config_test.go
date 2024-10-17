@@ -21,7 +21,7 @@ func TestLoadConfig(t *testing.T) {
 	assert.NotEmpty(t, cfg.FlagStoreInterval)
 	assert.NotEmpty(t, cfg.FlagStorePath)
 	assert.NotEmpty(t, cfg.FlagLogLevel)
-	
+
 	assert.Equal(t, cfg.FlagRunAddr, "localhost:8080")
 	assert.Equal(t, cfg.FlagLogLevel, "INFO")
 	assert.Equal(t, cfg.FlagHashKey, "blank/key")
