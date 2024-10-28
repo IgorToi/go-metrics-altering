@@ -27,6 +27,7 @@ type ConfigServer struct {
 	FlagDBDSN         string
 	FlagHashKey       string
 	ContextTimout     time.Duration
+	FlagCryptoKey     string
 }
 
 func LoadConfig() (*ConfigServer, error) {
@@ -40,16 +41,21 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
+	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "", "crypto-key path")
 	flag.Parse()
+
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
 	}
+
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
 		cfg.FlagLogLevel = envLogLevel
 	}
+
 	if envHashKey := os.Getenv("KEY"); envHashKey != "" {
 		cfg.FlagHashKey = envHashKey
 	}
+
 	if envStorageInterval := os.Getenv("STORE_INTERVAL"); envStorageInterval != "" {
 		// parse string env variable
 		v, err := strconv.Atoi(envStorageInterval)
@@ -58,12 +64,19 @@ func LoadConfig() (*ConfigServer, error) {
 		}
 		cfg.FlagStoreInterval = v
 	}
+
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		cfg.FlagCryptoKey = envCryptoKey
+	}
+
 	if envStorePath := os.Getenv("FILE_STORAGE_PATH"); envStorePath != "" {
 		cfg.FlagStorePath = envStorePath
 	}
+
 	if envDBDSN := os.Getenv("DATABASE_DSN"); envDBDSN != "" {
 		cfg.FlagDBDSN = envDBDSN
 	}
+
 	if envFlagRestore := os.Getenv("RESTORE"); envFlagRestore != "" {
 		// parse bool env variable
 		v, err := strconv.ParseBool(envFlagRestore)
@@ -72,10 +85,12 @@ func LoadConfig() (*ConfigServer, error) {
 		}
 		cfg.FlagRestore = v
 	}
+
 	// check if any config variables is empty
 	if !cfg.validate() {
 		return nil, errCfgVarEmpty
 	}
+
 	cfg.ContextTimout = 10 * time.Second
 	return cfg, err
 }

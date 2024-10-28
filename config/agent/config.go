@@ -28,6 +28,7 @@ type ConfigAgent struct {
 	FlagRateLimit      int
 	PauseDuration      time.Duration // Time - agent will wait to send metrics again
 	URL                string
+	FlagCryptoKey      string
 }
 
 func LoadConfig() (*ConfigAgent, error) {
@@ -40,34 +41,47 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.IntVar(&cfg.FlagPollInterval, "p", 0, "frequency of metrics being received from the runtime package")
 	flag.IntVar(&cfg.FlagRateLimit, "l", 3, "rate limit")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
+	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "", "crypto-key path")
+
 	flag.Parse()
+
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		cfg.FlagRunAddr = envRunAddr
 	}
+
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		cfg.FlagCryptoKey = envCryptoKey
+	}
+
 	if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
 		cfg.FlagRateLimit, err = strconv.Atoi(envRateLimit)
 		if err != nil {
 			logger.Log.Fatal("error while parsing rate limit", zap.Error(err))
 		}
 	}
+
 	if envHashValue := os.Getenv("KEY"); envHashValue != "" {
 		cfg.FlagHashKey = envHashValue
 	}
+
 	if envRoportInterval := os.Getenv("REPORT_INTERVAL"); envRoportInterval != "" {
 		cfg.FlagReportInterval, err = strconv.Atoi(envRoportInterval)
 		if err != nil {
 			logger.Log.Fatal("error while parsing report interval", zap.Error(err))
 		}
 	}
+
 	if envPollInterval := os.Getenv("POLL_INTERVAL"); envPollInterval != "" {
 		cfg.FlagPollInterval, err = strconv.Atoi(envPollInterval)
 		if err != nil {
 			logger.Log.Fatal("error while parsing poll interval", zap.Error(err))
 		}
 	}
+
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
 		cfg.FlagLogLevel = envLogLevel
 	}
+
 	cfg.PauseDuration = time.Duration(cfg.FlagReportInterval) * time.Second
 	cfg.URL = ProtocolScheme + cfg.FlagRunAddr
 	return cfg, err
