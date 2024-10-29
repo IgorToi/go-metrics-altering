@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -259,6 +260,10 @@ func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 		metricType := r.PathValue("metricType")
 		metricName := r.PathValue("metricName")
 		metricValue := r.PathValue("metricValue")
+
+		fmt.Println(metricType)
+
+
 
 		switch metricType {
 		case config.GaugeType:

@@ -71,7 +71,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 	}
 
 	////
-	publicKeyPEM, err := os.ReadFile("public.pem")
+	publicKeyPEM, err := os.ReadFile("keys/public.pem")
 	if err != nil {
 		logger.Log.Info("error while reading rsa public key:", zap.Error(err))
 		return err
