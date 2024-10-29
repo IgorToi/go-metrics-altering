@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-chi/chi"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
 	storage "github.com/igortoigildin/go-metrics-altering/internal/server/api"
@@ -36,9 +35,9 @@ func main() {
 		return
 	}
 
-	var r chi.Router
+
 	storage := storage.New(cfg)
-	r = server.Router(ctx, cfg, storage)
+	r := server.Router(ctx, cfg, storage)
 
 	logger.Log.Info("Starting server on", zap.String("address", cfg.FlagRunAddr))
 

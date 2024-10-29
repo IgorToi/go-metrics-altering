@@ -255,7 +255,6 @@ func getMetric(Storage Storage) http.HandlerFunc {
 
 func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		metricType := r.PathValue("metricType")
 		metricName := r.PathValue("metricName")
 		metricValue := r.PathValue("metricValue")
