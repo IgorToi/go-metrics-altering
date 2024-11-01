@@ -17,7 +17,7 @@ import (
 // SendJSONCounter accepts and sends counter metrics in URL format to predefined by config server address.
 func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 	path := fmt.Sprintf("/update/%s/%s/%s", config.GaugeType, config.PollCount, strconv.Itoa(counter))
-	r, err := http.NewRequest("POST", cfg.URL + path, nil)
+	r, err := http.NewRequest("POST", cfg.URL+path, nil)
 	if err != nil {
 		logger.Log.Error("error while preparing http request", zap.Error(err))
 	}
@@ -29,7 +29,7 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 		h.Write(nil)
 		dst := h.Sum(nil)
 		r.Header = http.Header{
-		"HashSHA256": {fmt.Sprintf("%x", dst)},
+			"HashSHA256": {fmt.Sprintf("%x", dst)},
 		}
 	}
 
@@ -59,7 +59,7 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 // SendURLGauge accepts and sends gauge metrics in URL format to predefined by config server address.
 func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) error {
 	path := fmt.Sprintf("/update/%s/%s/%s", config.GaugeType, metricName, strconv.FormatFloat(value, 'f', 6, 64))
-	r, err := http.NewRequest("POST", cfg.URL + path, nil)
+	r, err := http.NewRequest("POST", cfg.URL+path, nil)
 	if err != nil {
 		logger.Log.Error("error while preparing http request", zap.Error(err))
 	}
@@ -71,7 +71,7 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 		h.Write(nil)
 		dst := h.Sum(nil)
 		r.Header = http.Header{
-		"HashSHA256": {fmt.Sprintf("%x", dst)},
+			"HashSHA256": {fmt.Sprintf("%x", dst)},
 		}
 	}
 

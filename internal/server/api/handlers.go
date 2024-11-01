@@ -2,9 +2,17 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"database/sql"
+	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	_ "net/http/pprof" // подключаем пакет pprof
@@ -112,19 +120,49 @@ func updates(Storage Storage) http.HandlerFunc {
 func updateMetric(Storage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-
+		fmt.Println("???")
+		
 		if r.Method != http.MethodPost {
 			logger.Log.Info("got request with bad method", zap.String("method", r.Method))
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		var req models.Metrics
-		err := processjson.ReadJSON(r, &req)
+		
+
+		privateKeyPEM, err := os.ReadFile("keys/private.pem")
 		if err != nil {
-			logger.Log.Info("cannot decode request JSON body", zap.Error(err))
-			w.WriteHeader(http.StatusBadRequest)
+			panic(err)
+		}
+		privateKeyBlock, _ := pem.Decode(privateKeyPEM)
+		privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+		if err != nil {
+			panic(err)
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 			return
+		}
+		defer r.Body.Close()
+
+		
+		plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, body)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("Decrypted: %s\n", plaintext)
+		fmt.Println("!!!!")
+
+		
+
+		var req models.Metrics
+
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			logger.Log.Error("error: ", zap.Error(err))
 		}
 
 		if req.MType != config.GaugeType && req.MType != config.CountType {

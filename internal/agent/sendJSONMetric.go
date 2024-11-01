@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -108,6 +112,9 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 		dst := h.Sum(nil)
 		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
 	}
+
+
+
 	var compressedRequest bytes.Buffer
 	writer := gzip.NewWriter(&compressedRequest)
 	_, err = writer.Write(metricJSON)
@@ -120,7 +127,42 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
 		return err
 	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + updEndpoint)
+
+
+	 ////
+    publicKeyPEM, err := os.ReadFile("keys/public.pem")
+    if err != nil {
+        logger.Log.Info("error while reading rsa public key:", zap.Error(err))
+        return err
+    }
+    publicKeyBlock, _ := pem.Decode(publicKeyPEM)
+    publicKey, err := x509.ParsePKIXPublicKey(publicKeyBlock.Bytes)
+    if err != nil {
+        logger.Log.Info("error while parsing a public key in PKIX:", zap.Error(err))
+        return err
+    }
+
+    ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey.(*rsa.PublicKey), compressedRequest.Bytes())
+    if err != nil {
+        panic(err)
+    }
+    /////
+
+	fmt.Println(ciphertext)
+
+
+
+
+
+
+
+
+
+
+
+
+
+	_, err = req.SetBody(ciphertext).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
 		switch {

@@ -20,7 +20,7 @@ func Router(ctx context.Context, cfg *config.ConfigServer, storage Storage) *htt
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /value/{metricType}/{metricName}", logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(valuePathHandler(storage)), cfg))))
-	mux.HandleFunc("POST /update/{metricType}/{metricName}/{metricValue}",  logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updatePathHandler(storage)), cfg))))
+	mux.HandleFunc("POST /update/{metricType}/{metricName}/{metricValue}", logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updatePathHandler(storage)), cfg))))
 	mux.HandleFunc("GET /ping", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(http.HandlerFunc(ping(storage))))))
 	mux.HandleFunc("GET /", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(getAllmetrics(storage)), cfg)))))
 	mux.HandleFunc("POST /updates/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updates(storage)), cfg)))))
