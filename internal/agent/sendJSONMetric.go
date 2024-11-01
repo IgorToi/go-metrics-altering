@@ -1,15 +1,9 @@
 package agent
 
 import (
-	"bytes"
-	"compress/gzip"
 	"crypto/hmac"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +12,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -38,8 +33,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 	}
 
 	metric := models.GaugeConstructor(value, metricName)
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json")
 
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
@@ -56,20 +50,20 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
 	}
 
-	req.Method = resty.MethodPost
-	var compressedRequest bytes.Buffer
-	writer := gzip.NewWriter(&compressedRequest)
-	_, err = writer.Write(metricsJSON)
+	publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
 	if err != nil {
-		logger.Log.Info("error while compressing request:", zap.Error(err))
+		logger.Log.Info("error while reading rsa public key:", zap.Error(err))
 		return err
 	}
-	err = writer.Close()
+
+	// encrypting using public key
+	res, err := crypt.Encrypt(publicKeyPEM, metricsJSON)
 	if err != nil {
-		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
+		logger.Log.Error("error while encrypting data")
 		return err
 	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + updEndpoint)
+
+	_, err = req.SetBody(res).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
 		switch {
@@ -97,8 +91,8 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 	agent := resty.New()
 
 	metric := models.CounterConstructor(int64(counter))
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json")
+
 	metricJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Info("marshalling json error:", zap.Error(err))
@@ -113,56 +107,19 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
 	}
 
-
-
-	var compressedRequest bytes.Buffer
-	writer := gzip.NewWriter(&compressedRequest)
-	_, err = writer.Write(metricJSON)
+	publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
 	if err != nil {
-		logger.Log.Info("error while compressing request:", zap.Error(err))
+		logger.Log.Info("error while reading rsa public key:", zap.Error(err))
 		return err
 	}
-	err = writer.Close()
+	// encrypting using public key
+	res, err := crypt.Encrypt(publicKeyPEM, metricJSON)
 	if err != nil {
-		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
+		logger.Log.Error("error while encrypting data")
 		return err
 	}
 
-
-	 ////
-    publicKeyPEM, err := os.ReadFile("keys/public.pem")
-    if err != nil {
-        logger.Log.Info("error while reading rsa public key:", zap.Error(err))
-        return err
-    }
-    publicKeyBlock, _ := pem.Decode(publicKeyPEM)
-    publicKey, err := x509.ParsePKIXPublicKey(publicKeyBlock.Bytes)
-    if err != nil {
-        logger.Log.Info("error while parsing a public key in PKIX:", zap.Error(err))
-        return err
-    }
-
-    ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey.(*rsa.PublicKey), compressedRequest.Bytes())
-    if err != nil {
-        panic(err)
-    }
-    /////
-
-	fmt.Println(ciphertext)
-
-
-
-
-
-
-
-
-
-
-
-
-
-	_, err = req.SetBody(ciphertext).Post(cfg.URL + updEndpoint)
+	_, err = req.SetBody(res).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
 		switch {

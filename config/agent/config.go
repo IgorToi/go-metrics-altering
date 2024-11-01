@@ -28,7 +28,7 @@ type ConfigAgent struct {
 	FlagRateLimit      int
 	PauseDuration      time.Duration // Time - agent will wait to send metrics again
 	URL                string
-	FlagCryptoKey 		string
+	FlagCryptoKey      string
 }
 
 func LoadConfig() (*ConfigAgent, error) {
@@ -41,7 +41,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.IntVar(&cfg.FlagPollInterval, "p", 0, "frequency of metrics being received from the runtime package")
 	flag.IntVar(&cfg.FlagRateLimit, "l", 3, "rate limit")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
-	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "/keys", "path to public key")
+	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/public.pem", "path to public key")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {

@@ -2,15 +2,10 @@ package api
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"database/sql"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,9 +16,14 @@ import (
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	local "github.com/igortoigildin/go-metrics-altering/internal/storage/inmemory"
 	psql "github.com/igortoigildin/go-metrics-altering/internal/storage/postgres"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	processjson "github.com/igortoigildin/go-metrics-altering/pkg/processJSON"
 	"go.uber.org/zap"
+)
+
+const (
+	path = "keys/private.pem"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.45.0 --name=Storage
@@ -120,47 +120,37 @@ func updates(Storage Storage) http.HandlerFunc {
 func updateMetric(Storage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		fmt.Println("???")
-		
+
 		if r.Method != http.MethodPost {
 			logger.Log.Info("got request with bad method", zap.String("method", r.Method))
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		
-
-		privateKeyPEM, err := os.ReadFile("keys/private.pem")
+		// obtaining private key from file
+		privateKeyPEM, err := os.ReadFile(path)
 		if err != nil {
-			panic(err)
-		}
-		privateKeyBlock, _ := pem.Decode(privateKeyPEM)
-		privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
-		if err != nil {
-			panic(err)
+			logger.Log.Error("error while reading key")
+			return
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 			return
 		}
 		defer r.Body.Close()
 
-		
-		plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, body)
+		// decrypting request body using private key
+		plaintext, err := crypt.Decrypt(privateKeyPEM, body)
 		if err != nil {
-			panic(err)
+			logger.Log.Error("error while decryping data")
+			return
 		}
-
-		fmt.Printf("Decrypted: %s\n", plaintext)
-		fmt.Println("!!!!")
-
-		
 
 		var req models.Metrics
 
-		err = json.NewDecoder(r.Body).Decode(&req)
+		err = json.Unmarshal(plaintext, &req)
 		if err != nil {
 			logger.Log.Error("error: ", zap.Error(err))
 		}

@@ -16,6 +16,7 @@ import (
 // Auth middleware provides authorization based on HashSHA256.
 func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		key := []byte(cfg.FlagHashKey)
 		if len(key) > 0 && r.Header.Get("HashSHA256") != "" {
 			if r.Body != nil {
@@ -23,7 +24,7 @@ func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 
 				bodyBytes, err := io.ReadAll(r.Body)
 				if err != nil {
-					logger.Log.Info("cannot reads from reqeust body")
+					logger.Log.Info("cannot read from reqeust body")
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}

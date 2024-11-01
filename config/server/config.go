@@ -27,7 +27,7 @@ type ConfigServer struct {
 	FlagDBDSN         string
 	FlagHashKey       string
 	ContextTimout     time.Duration
-	FlagCryptoKey 		string
+	FlagCryptoKey     string
 }
 
 func LoadConfig() (*ConfigServer, error) {
@@ -41,7 +41,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
-	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "/keys", "path to private key")
+	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/private.pem", "path to private key")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
