@@ -1,39 +1,56 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"html/template"
+	"log"
 	"os"
 	"strconv"
 	"time"
 )
 
 const (
-	GaugeType = "gauge"
-	CountType = "counter"
-	PollCount = "PollCount"
+	GaugeType  = "gauge"
+	CountType  = "counter"
+	PollCount  = "PollCount"
+	timeout    = 10
+	configPath = "config/server/config.json"
 )
 
 var errCfgVarEmpty = errors.New("configs variable not set")
 
 type ConfigServer struct {
-	FlagRunAddr       string
+	FlagRunAddr       string `json:"address"`
 	Template          *template.Template
-	FlagLogLevel      string
-	FlagStoreInterval int
-	FlagStorePath     string
-	FlagRestore       bool
-	FlagDBDSN         string
-	FlagHashKey       string
+	FlagLogLevel      string `json:"log_level"`
+	FlagStoreInterval int    `json:"store_interval"`
+	FlagStorePath     string `json:"store_file"`
+	FlagRestore       bool   `json:"restore"`
+	FlagDBDSN         string `json:"database_dsn"`
+	FlagHashKey       string `json:"hash_key"`
 	ContextTimout     time.Duration
-	FlagCryptoKey     string
+	FlagCryptoKey     string `json:"crypto_key"`
+	FlagConfigName    string `json:"config_name"`
 }
 
 func LoadConfig() (*ConfigServer, error) {
 	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 	var err error
+
+	configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, 0777)
+	if err != nil {
+		log.Fatal("error while opening config.json", err)
+	}
+	defer configFile.Close()
+
+	err = json.NewDecoder(configFile).Decode(&cfg)
+	if err != nil {
+		log.Fatal("error while decoding data from config.json", err)
+	}
+
 	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
 	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
@@ -42,6 +59,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/private.pem", "path to private key")
+	flag.StringVar(&cfg.FlagConfigName, "c", "config/server/config.json", "name of the config with json data")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -50,6 +68,10 @@ func LoadConfig() (*ConfigServer, error) {
 
 	if envRSAKey := os.Getenv("CRYPTO_KEY"); envRSAKey != "" {
 		cfg.FlagHashKey = envRSAKey
+	}
+
+	if envCofigName := os.Getenv("CONFIG"); envCofigName != "" {
+		cfg.FlagConfigName = envCofigName
 	}
 
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
@@ -91,7 +113,13 @@ func LoadConfig() (*ConfigServer, error) {
 		return nil, errCfgVarEmpty
 	}
 
-	cfg.ContextTimout = 10 * time.Second
+	// rename config.json as needed
+	err = os.Rename(configPath, cfg.FlagConfigName)
+	if err != nil {
+		log.Println("error while renaming config.json", err)
+	}
+
+	cfg.ContextTimout = timeout * time.Second
 	return cfg, err
 }
 
