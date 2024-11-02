@@ -58,7 +58,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.BoolVar(&cfg.FlagRestore, "r", false, "true if load from backup is needed")
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
-	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/private.pem", "path to private key")
+	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys", "path to private key")
 	flag.StringVar(&cfg.FlagConfigName, "c", "config/server/config.json", "name of the config with json data")
 	flag.Parse()
 
