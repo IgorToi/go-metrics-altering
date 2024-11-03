@@ -19,14 +19,13 @@ var buildVersion string = "N/A"
 var buildDate string = "N/A"
 var buildCommit string = "N/A"
 
-
 func Run(cfg *config.ConfigServer) {
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	ctx := context.Background()
-	
+
 	// Postgres Storage initialization
 	storage := storage.New(cfg)
 
@@ -36,12 +35,12 @@ func Run(cfg *config.ConfigServer) {
 	logger.Log.Info("Starting server on", zap.String("address", cfg.FlagRunAddr))
 
 	// HTTP server
-	httpSrv := httpServer.New(r, httpServer.Port(cfg.FlagRunAddr))
+	httpSrv := httpServer.New(r, httpServer.Address(cfg.FlagRunAddr))
 
 	// waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	
+
 	select {
 	case s := <-interrupt:
 		logger.Log.Info("Received: ", zap.String("signal", s.String()))
@@ -54,4 +53,6 @@ func Run(cfg *config.ConfigServer) {
 	if err != nil {
 		logger.Log.Error("error:", zap.Error(err))
 	}
+
+	logger.Log.Info("Graceful server shutdown complete...")
 }

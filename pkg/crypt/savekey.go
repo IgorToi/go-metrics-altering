@@ -28,15 +28,11 @@ func InitRSAKeys(cfg *config.ConfigServer) error {
 		Bytes: privateKeyBytes,
 	})
 
-
-
-	err = os.WriteFile(cfg.FlagCryptoKey + "/private.pem", privateKeyPEM, 0644)
+	err = os.WriteFile(cfg.FlagCryptoKey+"/private.pem", privateKeyPEM, 0644)
 	if err != nil {
 		logger.Log.Error("error while writing RSA private key to the file", zap.Error(err))
 		return err
 	}
-
-
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
@@ -48,8 +44,7 @@ func InitRSAKeys(cfg *config.ConfigServer) error {
 		Bytes: publicKeyBytes,
 	})
 
-
-	err = os.WriteFile(cfg.FlagCryptoKey + "/public.pem", publicKeyPEM, 0644)
+	err = os.WriteFile(cfg.FlagCryptoKey+"/public.pem", publicKeyPEM, 0644)
 	if err != nil {
 		logger.Log.Error("error while writing RSA public key to the file", zap.Error(err))
 		return err
@@ -57,6 +52,3 @@ func InitRSAKeys(cfg *config.ConfigServer) error {
 
 	return nil
 }
-
-
-

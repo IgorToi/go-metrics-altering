@@ -15,23 +15,23 @@ const (
 
 // Server -.
 type Server struct {
-	server *http.Server
-	notify chan error
+	server          *http.Server
+	notify          chan error
 	ShutdownTimeout time.Duration
 }
 
 // New -.
 func New(handler http.Handler, opts ...Option) *Server {
 	httpServer := &http.Server{
-		Handler: handler,
-		ReadTimeout: _defaultReadTimeout,
+		Handler:      handler,
+		ReadTimeout:  _defaultReadTimeout,
 		WriteTimeout: _defaultWriteTimeout,
-		Addr: _defaultAddr,
+		Addr:         _defaultAddr,
 	}
 
 	s := &Server{
-		server: httpServer,
-		notify: make(chan error, 1),
+		server:          httpServer,
+		notify:          make(chan error, 1),
 		ShutdownTimeout: _defaultShutdownTimeout,
 	}
 

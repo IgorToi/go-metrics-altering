@@ -12,7 +12,7 @@ import (
 )
 
 func TestMemoryStats_UpdateRunTimeStat(t *testing.T) {
-	m := NewMemoryStats()
+	m := New()
 	cfg, _ := config.LoadConfig()
 	cfg.PauseDuration = 0
 	go m.UpdateRunTimeStat(cfg)
@@ -23,7 +23,7 @@ func TestMemoryStats_UpdateRunTimeStat(t *testing.T) {
 }
 
 func TestMemoryStats_UpdateCPURAMStat(t *testing.T) {
-	m := NewMemoryStats()
+	m := New()
 
 	cfg := config.ConfigAgent{}
 	cfg.PauseDuration = 0
