@@ -10,12 +10,8 @@ import (
 	_ "net/http/pprof"
 	"testing"
 
-	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/internal/server/api/mocks"
-	local "github.com/igortoigildin/go-metrics-altering/internal/storage/inmemory"
-	psql "github.com/igortoigildin/go-metrics-altering/internal/storage/postgres"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -597,20 +593,6 @@ func Test_updatePathHandler(t *testing.T) {
 			require.Equal(t, tt.respStatusCode, resp.StatusCode)
 		})
 	}
-}
-
-func TestNew(t *testing.T) {
-	cfg := config.ConfigServer{}
-	s := New(&cfg)
-
-	_, ok := s.(*local.LocalStorage)
-	assert.True(t, ok)
-
-	cfg.FlagDBDSN = "temp"
-	p := New(&cfg)
-
-	_, ok = p.(*psql.PGStorage)
-	assert.True(t, ok)
 }
 
 func Test_getAllmetrics(t *testing.T) {

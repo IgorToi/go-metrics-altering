@@ -63,8 +63,6 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 		}
 	}
 
-	
-
 	_, err = req.SetBody(metricsJSON).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
@@ -110,23 +108,18 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 	}
 
 	if cfg.FlagRSAEncryption {
-			publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
-			if err != nil {
-				logger.Log.Info("error while reading rsa public key:", zap.Error(err))
-				return err
-			}
-			// encrypting using public key
-			metricJSON, err = crypt.Encrypt(publicKeyPEM, metricJSON)
-			if err != nil {
-				logger.Log.Error("error while encrypting data")
-				return err
-			}
+		publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
+		if err != nil {
+			logger.Log.Info("error while reading rsa public key:", zap.Error(err))
+			return err
 		}
-
-
-
-
-
+		// encrypting using public key
+		metricJSON, err = crypt.Encrypt(publicKeyPEM, metricJSON)
+		if err != nil {
+			logger.Log.Error("error while encrypting data")
+			return err
+		}
+	}
 
 	_, err = req.SetBody(metricJSON).Post(cfg.URL + updEndpoint)
 	if err != nil {

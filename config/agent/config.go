@@ -16,8 +16,15 @@ const (
 	PollCount      = "PollCount"
 	StatusOK       = 200
 	ProtocolScheme = "http://"
-	configPath     = "config.json"
+	configPath     = "config/agent/configAgent.json"
 )
+
+const defaultAgentConfig = `{
+    "address": "localhost:8080", 
+    "report_interval": 1, 
+    "poll_interval": 1, 
+    "crypto_key": "/path/to/key.pem"
+}`
 
 type ConfigAgent struct {
 	FlagRunAddr        string        `json:"address"`
@@ -30,13 +37,17 @@ type ConfigAgent struct {
 	URL                string
 	FlagCryptoKey      string `json:"crypto_key"`
 	FlagConfigName     string `json:"config_name"`
-	FlagRSAEncryption bool 
+	FlagRSAEncryption  bool
 }
 
 func LoadConfig() (*ConfigAgent, error) {
 	cfg := new(ConfigAgent)
 
-	configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, 0777)
+	if err := os.WriteFile(configPath, []byte(defaultAgentConfig), 0666); err != nil {
+		log.Println(err)
+	}
+
+	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Println("error while opening config.json", err)
 	}
@@ -55,7 +66,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.IntVar(&cfg.FlagRateLimit, "l", 3, "rate limit")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/public.pem", "path to public key")
-	flag.StringVar(&cfg.FlagConfigName, "c", "config.json", "name of the config with json data")
+	flag.StringVar(&cfg.FlagConfigName, "c", "configAgent.json", "name of the config with json data")
 	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", false, "whether communication should be encrypted using rsa keys")
 	flag.Parse()
 
@@ -101,7 +112,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	}
 
 	// rename config.json as needed
-	err = os.Rename(configPath, cfg.FlagConfigName)
+	err = os.Rename(configPath, "config/agent/"+cfg.FlagConfigName)
 	if err != nil {
 		log.Println("error while renaming config.json", err)
 	}

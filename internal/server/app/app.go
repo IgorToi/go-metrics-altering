@@ -9,7 +9,7 @@ import (
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
-	storage "github.com/igortoigildin/go-metrics-altering/internal/server/api"
+	storage "github.com/igortoigildin/go-metrics-altering/internal/storage"
 	httpServer "github.com/igortoigildin/go-metrics-altering/pkg/httpServer"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
@@ -26,7 +26,7 @@ func Run(cfg *config.ConfigServer) {
 
 	ctx := context.Background()
 
-	// Postgres Storage initialization
+	// Storage
 	storage := storage.New(cfg)
 
 	// Handlers

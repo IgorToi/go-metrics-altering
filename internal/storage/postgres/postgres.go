@@ -1,9 +1,11 @@
-package storage
+package psql
 
 import (
 	"context"
 	"database/sql"
 
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database/postgres"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
@@ -22,10 +24,34 @@ type PGStorage struct {
 	strategy Strategy
 }
 
-func NewPGStorage(conn *sql.DB) *PGStorage {
-	return &PGStorage{
-		conn: conn,
+func New(cfg *config.ConfigServer) *PGStorage {
+	dbDSN := cfg.FlagDBDSN
+
+	db, err := sql.Open("pgx", dbDSN)
+	if err != nil {
+		logger.Log.Info("error while connecting to DB", zap.Error(err))
 	}
+	logger.Log.Info("database connection pool established")
+
+	instance, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		logger.Log.Fatal("migration error", zap.Error(err))
+	}
+
+	migrator, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", instance)
+	if err != nil {
+		logger.Log.Fatal("migration error", zap.Error(err))
+	}
+	if err = migrator.Up(); err != nil && err != migrate.ErrNoChange {
+		logger.Log.Fatal("migration error", zap.Error(err))
+	}
+	logger.Log.Info("database connection established")
+
+	rep := &PGStorage{
+		conn: db,
+	}
+
+	return rep
 }
 
 func (pg *PGStorage) SetStrategy(metricType string) {
@@ -40,26 +66,6 @@ func (pg *PGStorage) SetStrategy(metricType string) {
 		}
 		pg.strategy = &gauge
 	}
-}
-
-func New(cfg *config.ConfigServer) *PGStorage {
-	dbDSN := cfg.FlagDBDSN
-	conn, err := sql.Open("pgx", dbDSN)
-	if err != nil {
-		logger.Log.Info("error while connecting to DB", zap.Error(err))
-	}
-	rep := NewPGStorage(conn)
-	_, err = rep.conn.ExecContext(context.TODO(), "CREATE TABLE IF NOT EXISTS counters (id SERIAL, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value bigint, primary key(name));")
-	if err != nil {
-		logger.Log.Info("error while creating counters table", zap.Error(err))
-	}
-	_, err = rep.conn.ExecContext(context.TODO(), "CREATE TABLE IF NOT EXISTS gauges (id SERIAL, name TEXT NOT NULL,"+
-		"type TEXT NOT NULL, value DOUBLE PRECISION, primary key(name));")
-	if err != nil {
-		logger.Log.Info("error while creating gauges table", zap.Error(err))
-	}
-	return rep
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) error {

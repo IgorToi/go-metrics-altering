@@ -16,8 +16,17 @@ const (
 	CountType  = "counter"
 	PollCount  = "PollCount"
 	timeout    = 10
-	configPath = "config.json"
+	configPath = "config/server/configServer.json"
 )
+
+const defaultSrvConfig = `{
+    "address": "localhost:8080",
+    "restore": true,
+    "store_interval": 1,
+    "store_file": "/path/to/file.db", 
+    "database_dsn": "",
+    "crypto_key": "/path/to/key.pem"
+}`
 
 var errCfgVarEmpty = errors.New("configs variable not set")
 
@@ -33,15 +42,18 @@ type ConfigServer struct {
 	ContextTimout     time.Duration
 	FlagCryptoKey     string `json:"crypto_key"`
 	FlagConfigName    string `json:"config_name"`
-	FlagRSAEncryption bool 
+	FlagRSAEncryption bool
 }
 
 func LoadConfig() (*ConfigServer, error) {
 	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
-	var err error
 
-	configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, 0777)
+	if err := os.WriteFile(configPath, []byte(defaultSrvConfig), 0666); err != nil {
+		log.Println(err)
+	}
+
+	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Println("error while opening config.json", err)
 	}
@@ -60,7 +72,7 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys", "path to private key")
-	flag.StringVar(&cfg.FlagConfigName, "c", "config.json", "name of the config with json data")
+	flag.StringVar(&cfg.FlagConfigName, "c", "configServer.json", "name of the config with json data")
 	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", false, "whether communication should be encrypted using rsa keys")
 	flag.Parse()
 
@@ -116,7 +128,7 @@ func LoadConfig() (*ConfigServer, error) {
 	}
 
 	// rename config.json as needed
-	err = os.Rename(configPath, cfg.FlagConfigName)
+	err = os.Rename(configPath, "config/server/"+cfg.FlagConfigName)
 	if err != nil {
 		log.Println("error while renaming config.json", err)
 	}
