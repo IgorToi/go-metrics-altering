@@ -1,4 +1,4 @@
-## «Сервис сбора метрик и алертинга»
+## «Metrics and alerting collection service»
 
 ### Requirements
 
