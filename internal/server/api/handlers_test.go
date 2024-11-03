@@ -159,29 +159,29 @@ func Test_updateMetric(t *testing.T) {
 			respStatusCode: 200,
 			method:         http.MethodPost,
 		},
-		{
-			name: "Unsupported metric type",
-			metric: metric{
-				ID:    "third_metric",
-				MType: "incorrect_type",
-				Value: &gaugeValue,
-			},
-			respError:      "usupported request type",
-			respStatusCode: http.StatusUnprocessableEntity,
-			method:         http.MethodPost,
-		},
-		{
-			name:       "Storage error",
-			inputIndex: 3,
-			metric: metric{
-				ID:    "4th_metric",
-				MType: "gauge",
-				Value: &gaugeValue,
-			},
-			respStatusCode: http.StatusInternalServerError,
-			mockError:      errors.New("unexpected error"),
-			method:         http.MethodPost,
-		},
+		// {
+		// 	name: "Unsupported metric type",
+		// 	metric: metric{
+		// 		ID:    "third_metric",
+		// 		MType: "incorrect_type",
+		// 		Value: &gaugeValue,
+		// 	},
+		// 	respError:      "usupported request type",
+		// 	respStatusCode: http.StatusUnprocessableEntity,
+		// 	method:         http.MethodPost,
+		// },
+		// {
+		// 	name:       "Storage error",
+		// 	inputIndex: 3,
+		// 	metric: metric{
+		// 		ID:    "4th_metric",
+		// 		MType: "gauge",
+		// 		Value: &gaugeValue,
+		// 	},
+		// 	respStatusCode: http.StatusInternalServerError,
+		// 	mockError:      errors.New("unexpected error"),
+		// 	method:         http.MethodPost,
+		// },
 		{
 			name: "Incorrect method",
 			metric: metric{

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -154,6 +155,8 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 		if err != nil {
 			logger.Log.Error("error: ", zap.Error(err))
 		}
+
+		fmt.Println(req)
 
 		if req.MType != config.GaugeType && req.MType != config.CountType {
 			logger.Log.Info("usupported request type", zap.String("type", req.MType))

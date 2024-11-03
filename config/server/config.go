@@ -16,7 +16,7 @@ const (
 	CountType  = "counter"
 	PollCount  = "PollCount"
 	timeout    = 10
-	configPath = "config/server/config.json"
+	configPath = "config.json"
 )
 
 var errCfgVarEmpty = errors.New("configs variable not set")
@@ -33,6 +33,7 @@ type ConfigServer struct {
 	ContextTimout     time.Duration
 	FlagCryptoKey     string `json:"crypto_key"`
 	FlagConfigName    string `json:"config_name"`
+	FlagRSAEncryption bool 
 }
 
 func LoadConfig() (*ConfigServer, error) {
@@ -42,13 +43,13 @@ func LoadConfig() (*ConfigServer, error) {
 
 	configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, 0777)
 	if err != nil {
-		log.Fatal("error while opening config.json", err)
+		log.Println("error while opening config.json", err)
 	}
 	defer configFile.Close()
 
 	err = json.NewDecoder(configFile).Decode(&cfg)
 	if err != nil {
-		log.Fatal("error while decoding data from config.json", err)
+		log.Println("error while decoding data from config.json", err)
 	}
 
 	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
@@ -59,7 +60,8 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagDBDSN, "d", "", "string with DB DSN")
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys", "path to private key")
-	flag.StringVar(&cfg.FlagConfigName, "c", "config/server/config.json", "name of the config with json data")
+	flag.StringVar(&cfg.FlagConfigName, "c", "config.json", "name of the config with json data")
+	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", false, "whether communication should be encrypted using rsa keys")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {

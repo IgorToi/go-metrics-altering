@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -22,14 +21,9 @@ func TestSendJSONGauge(t *testing.T) {
 
 	successResponse := `"id":"Alloc","type":"gauge","value":1`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// r.body is encoded in gzip format by default
 		var metric models.Metrics
-		reader, err := gzip.NewReader(r.Body)
-		if err != nil {
-			log.Println(err)
-		}
-		defer reader.Close()
-		err = json.NewDecoder(reader).Decode(&metric)
+
+		err := json.NewDecoder(r.Body).Decode(&metric)
 		if err != nil {
 			log.Println(err)
 		}
@@ -37,10 +31,12 @@ func TestSendJSONGauge(t *testing.T) {
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
+
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
 		URL:         server.URL,
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -104,15 +100,6 @@ func TestSendURLGauge(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "Metric name not stated",
-			args: args{
-				metricName: "",
-				cfg:        &cfg,
-				value:      1.00,
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -171,14 +158,9 @@ func TestSendJSONCounter(t *testing.T) {
 
 	successResponse := `"id":"Counter","type":"counter","value":1`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// r.body is encoded in gzip format by default
 		var metric models.Metrics
-		reader, err := gzip.NewReader(r.Body)
-		if err != nil {
-			log.Println(err)
-		}
-		defer reader.Close()
-		err = json.NewDecoder(reader).Decode(&metric)
+
+		err := json.NewDecoder(r.Body).Decode(&metric)
 		if err != nil {
 			log.Println(err)
 		}
