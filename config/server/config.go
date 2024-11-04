@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	GaugeType  = "gauge"
-	CountType  = "counter"
-	PollCount  = "PollCount"
-	timeout    = 10
-	cfgName = "config/server/configServer.json"
+	GaugeType = "gauge"
+	CountType = "counter"
+	PollCount = "PollCount"
+	timeout   = 10
+	cfgName   = "config/server/configServer.json"
 )
 
 const defaultSrvConfig = `{

@@ -1,5 +1,10 @@
 [
   {
+    "id": "count_metric",
+    "type": "counter",
+    "delta": 25
+  },
+  {
     "id": "gauge_metric",
     "type": "gauge",
     "value": 50
@@ -8,10 +13,5 @@
     "id": "PollCount",
     "type": "counter",
     "delta": 0
-  },
-  {
-    "id": "count_metric",
-    "type": "counter",
-    "delta": 25
   }
 ]

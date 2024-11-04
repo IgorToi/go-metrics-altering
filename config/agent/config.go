@@ -16,7 +16,7 @@ const (
 	PollCount      = "PollCount"
 	StatusOK       = 200
 	ProtocolScheme = "http://"
-	cfgName     = "config/agent/configAgent.json"
+	cfgName        = "config/agent/configAgent.json"
 )
 
 const defaultAgentConfig = `{
