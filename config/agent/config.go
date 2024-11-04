@@ -16,7 +16,7 @@ const (
 	PollCount      = "PollCount"
 	StatusOK       = 200
 	ProtocolScheme = "http://"
-	configPath     = "config/agent/configAgent.json"
+	cfgName     = "config/agent/configAgent.json"
 )
 
 const defaultAgentConfig = `{
@@ -43,11 +43,11 @@ type ConfigAgent struct {
 func LoadConfig() (*ConfigAgent, error) {
 	cfg := new(ConfigAgent)
 
-	if err := os.WriteFile(configPath, []byte(defaultAgentConfig), 0666); err != nil {
+	if err := os.WriteFile(cfgName, []byte(defaultAgentConfig), 0666); err != nil {
 		log.Println(err)
 	}
 
-	configFile, err := os.Open(configPath)
+	configFile, err := os.Open(cfgName)
 	if err != nil {
 		log.Println("error while opening config.json", err)
 	}
@@ -109,12 +109,6 @@ func LoadConfig() (*ConfigAgent, error) {
 
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
 		cfg.FlagLogLevel = envLogLevel
-	}
-
-	// rename config.json as needed
-	err = os.Rename(configPath, "config/agent/"+cfg.FlagConfigName)
-	if err != nil {
-		log.Println("error while renaming config.json", err)
 	}
 
 	cfg.PauseDuration = time.Duration(cfg.FlagReportInterval) * time.Second

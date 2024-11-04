@@ -16,7 +16,7 @@ const (
 	CountType  = "counter"
 	PollCount  = "PollCount"
 	timeout    = 10
-	configPath = "config/server/configServer.json"
+	cfgName = "config/server/configServer.json"
 )
 
 const defaultSrvConfig = `{
@@ -49,11 +49,11 @@ func LoadConfig() (*ConfigServer, error) {
 	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 
-	if err := os.WriteFile(configPath, []byte(defaultSrvConfig), 0666); err != nil {
+	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0666); err != nil {
 		log.Println(err)
 	}
 
-	configFile, err := os.Open(configPath)
+	configFile, err := os.Open(cfgName)
 	if err != nil {
 		log.Println("error while opening config.json", err)
 	}
@@ -125,12 +125,6 @@ func LoadConfig() (*ConfigServer, error) {
 	// check if any config variables is empty
 	if !cfg.validate() {
 		return nil, errCfgVarEmpty
-	}
-
-	// rename config.json as needed
-	err = os.Rename(configPath, "config/server/"+cfg.FlagConfigName)
-	if err != nil {
-		log.Println("error while renaming config.json", err)
 	}
 
 	cfg.ContextTimout = timeout * time.Second
