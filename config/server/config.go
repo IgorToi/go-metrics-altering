@@ -49,7 +49,7 @@ func LoadConfig() (*ConfigServer, error) {
 	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 
-	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0666); err != nil {
+	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0777); err != nil {
 		log.Println(err)
 	}
 

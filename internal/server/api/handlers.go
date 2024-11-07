@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -98,6 +97,7 @@ func updates(Storage Storage) http.HandlerFunc {
 
 func updateMetric(Storage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		ctx := r.Context()
 
 		if r.Method != http.MethodPost {
@@ -106,10 +106,10 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 			return
 		}
 
-		// obtaining private key from file
+		//obtaining private key from file
 		privateKeyPEM, err := os.ReadFile(path)
 		if err != nil {
-			logger.Log.Error("error while reading key")
+			logger.Log.Error("error while reading key", zap.Error(err))
 			return
 		}
 
@@ -134,14 +134,6 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 			logger.Log.Error("error: ", zap.Error(err))
 		}
 
-		fmt.Println(req)
-
-		if req.MType != config.GaugeType && req.MType != config.CountType {
-			logger.Log.Info("usupported request type", zap.String("type", req.MType))
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
-		}
-
 		switch req.MType {
 		case config.GaugeType:
 			err := Storage.Update(ctx, req.MType, req.ID, req.Value)
@@ -157,6 +149,10 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+		default:
+			logger.Log.Info("usupported request type", zap.String("type", req.MType))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 
 		resp := models.Metrics{

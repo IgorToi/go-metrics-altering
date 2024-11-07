@@ -60,12 +60,14 @@ func (pg *PGStorage) SetStrategy(metricType string) {
 			conn: pg.conn,
 		}
 		pg.strategy = &count
-	} else {
-		gauge := gauge{
-			conn: pg.conn,
-		}
-		pg.strategy = &gauge
+		return
 	}
+
+	gauge := gauge{
+		conn: pg.conn,
+	}
+	pg.strategy = &gauge
+
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) error {

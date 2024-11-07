@@ -13,17 +13,34 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	publicKey  = "public.pem"
+	privateKey = "private.pem"
+	keysDir    = "keys"
+)
+
 func InitRSAKeys(cfg *config.ConfigServer) error {
 	privateKeyPEM, publicKeyPEM, err := GenerateRSAKeys(cfg)
 	if err != nil {
+		logger.Log.Error("error:", zap.Error(err))
 		return err
 	}
-	err = saveKey(cfg.FlagCryptoKey+"/private.pem", privateKeyPEM, 0644)
+
+	err = os.MkdirAll("keys", 0777)
 	if err != nil {
+		logger.Log.Error("error:", zap.Error(err))
 		return err
 	}
-	err = saveKey(cfg.FlagCryptoKey+"/public.pem", publicKeyPEM, 0644)
+
+	err = saveKey("/"+privateKey, privateKeyPEM, 0777)
 	if err != nil {
+		logger.Log.Error("error:", zap.Error(err))
+		return err
+	}
+
+	err = saveKey("/"+publicKey, publicKeyPEM, 0777)
+	if err != nil {
+		logger.Log.Error("error:", zap.Error(err))
 		return err
 	}
 	return nil
@@ -61,7 +78,7 @@ func GenerateRSAKeys(cfg *config.ConfigServer) ([]byte, []byte, error) {
 }
 
 func saveKey(name string, data []byte, perm fs.FileMode) error {
-	err := os.WriteFile(name, data, perm)
+	err := os.WriteFile(keysDir+name, data, perm)
 	if err != nil {
 		logger.Log.Error("error saving key to the file", zap.Error(err))
 		return err
