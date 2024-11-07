@@ -3,13 +3,16 @@ package psql
 import (
 	"context"
 	"database/sql"
+	"errors"
 
-	"github.com/golang-migrate/migrate"
-	"github.com/golang-migrate/migrate/database/postgres"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/lib/pq"
+
 	"go.uber.org/zap"
 )
 
@@ -33,6 +36,24 @@ func New(cfg *config.ConfigServer) *PGStorage {
 	}
 	logger.Log.Info("database connection pool established")
 
+	// Migrating DB
+	if err := runMigrations("migrations", db); err != nil {
+		logger.Log.Fatal("could not migrate db: %s", zap.Error(err))
+	}
+
+	logger.Log.Info("database connection established")
+
+	rep := &PGStorage{
+		conn: db,
+	}
+
+	return rep
+}
+
+func runMigrations(migrationsPath string, db *sql.DB) error {
+	if migrationsPath == "" {
+		return errors.New("missing migrations path")
+	}
 	instance, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		logger.Log.Fatal("migration error", zap.Error(err))
@@ -45,13 +66,7 @@ func New(cfg *config.ConfigServer) *PGStorage {
 	if err = migrator.Up(); err != nil && err != migrate.ErrNoChange {
 		logger.Log.Fatal("migration error", zap.Error(err))
 	}
-	logger.Log.Info("database connection established")
-
-	rep := &PGStorage{
-		conn: db,
-	}
-
-	return rep
+	return nil
 }
 
 func (pg *PGStorage) SetStrategy(metricType string) {

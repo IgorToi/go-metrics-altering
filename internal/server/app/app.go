@@ -12,6 +12,7 @@ import (
 	storage "github.com/igortoigildin/go-metrics-altering/internal/storage"
 	httpServer "github.com/igortoigildin/go-metrics-altering/pkg/httpServer"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 

@@ -73,7 +73,7 @@
 				
 				<option value="file8">github.com/igortoigildin/go-metrics-altering/internal/agent/memory/memory.go (82.5%)</option>
 				
-				<option value="file9">github.com/igortoigildin/go-metrics-altering/internal/agent/sendJSONMetric.go (35.2%)</option>
+				<option value="file9">github.com/igortoigildin/go-metrics-altering/internal/agent/sendJSONMetric.go (69.0%)</option>
 				
 				<option value="file10">github.com/igortoigildin/go-metrics-altering/internal/agent/sendURLMetric.go (37.5%)</option>
 				
@@ -885,7 +885,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
         }</span>
 
         // signing metric value with sha256 and setting header accordingly
-        <span class="cov8" title="1">if cfg.FlagHashKey != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if cfg.FlagHashKey != "" </span><span class="cov8" title="1">{
                 key := []byte(cfg.FlagHashKey)
                 h := hmac.New(sha256.New, key)
                 h.Write(metricsJSON)
@@ -893,21 +893,21 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
                 req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
         }</span>
 
-        <span class="cov8" title="1">if cfg.FlagRSAEncryption </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if cfg.FlagRSAEncryption </span><span class="cov8" title="1">{
                 publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
                 if err != nil </span><span class="cov0" title="0">{
                         logger.Log.Info("error while reading rsa public key:", zap.Error(err))
                 }</span>
 
                 // encrypting using public key
-                <span class="cov0" title="0">metricsJSON, err = crypt.Encrypt(publicKeyPEM, metricsJSON)
+                <span class="cov8" title="1">metricsJSON, err = crypt.Encrypt(publicKeyPEM, metricsJSON)
                 if err != nil </span><span class="cov0" title="0">{
                         logger.Log.Error("error while encrypting data")
                 }</span>
         }
 
         <span class="cov8" title="1">_, err = req.SetBody(metricsJSON).Post(cfg.URL + updEndpoint)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 // send again n times if timeout error
                 switch </span>{
                 case os.IsTimeout(err):<span class="cov0" title="0">
@@ -919,7 +919,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
                                 <span class="cov0" title="0">logger.Log.Info("timeout error, server not reachable:", zap.Error(err))</span>
                         }
                         <span class="cov0" title="0">return ErrConnectionFailed</span>
-                default:<span class="cov0" title="0">
+                default:<span class="cov8" title="1">
                         logger.Log.Info("unexpected sending metric error:", zap.Error(err))
                         return err</span>
                 }
@@ -942,7 +942,7 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error <span class="co
                 return err
         }</span>
         // signing metric value with sha256 and setting header accordingly
-        <span class="cov8" title="1">if cfg.FlagHashKey != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if cfg.FlagHashKey != "" </span><span class="cov8" title="1">{
                 key := []byte(cfg.FlagHashKey)
                 h := hmac.New(sha256.New, key)
                 h.Write(metricJSON)
@@ -950,14 +950,14 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error <span class="co
                 req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
         }</span>
 
-        <span class="cov8" title="1">if cfg.FlagRSAEncryption </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if cfg.FlagRSAEncryption </span><span class="cov8" title="1">{
                 publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
                 if err != nil </span><span class="cov0" title="0">{
                         logger.Log.Info("error while reading rsa public key:", zap.Error(err))
                         return err
                 }</span>
                 // encrypting using public key
-                <span class="cov0" title="0">metricJSON, err = crypt.Encrypt(publicKeyPEM, metricJSON)
+                <span class="cov8" title="1">metricJSON, err = crypt.Encrypt(publicKeyPEM, metricJSON)
                 if err != nil </span><span class="cov0" title="0">{
                         logger.Log.Error("error while encrypting data")
                         return err
@@ -965,7 +965,7 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error <span class="co
         }
 
         <span class="cov8" title="1">_, err = req.SetBody(metricJSON).Post(cfg.URL + updEndpoint)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 // send again n times if timeout error
                 switch </span>{
                 case os.IsTimeout(err):<span class="cov0" title="0">
@@ -977,7 +977,7 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error <span class="co
                                 <span class="cov0" title="0">logger.Log.Info("timeout error, server not reachable:", zap.Error(err))</span>
                         }
                         <span class="cov0" title="0">return ErrConnectionFailed</span>
-                default:<span class="cov0" title="0">
+                default:<span class="cov8" title="1">
                         logger.Log.Info("unexpected sending metric error via URL:", zap.Error(err))
                         return err</span>
                 }
@@ -1631,6 +1631,7 @@ import (
         storage "github.com/igortoigildin/go-metrics-altering/internal/storage"
         httpServer "github.com/igortoigildin/go-metrics-altering/pkg/httpServer"
         "github.com/igortoigildin/go-metrics-altering/pkg/logger"
+        _ "github.com/jackc/pgx/v5/stdlib"
         "go.uber.org/zap"
 )
 
@@ -1912,13 +1913,16 @@ func (g *gaugeRepo) Get(metricType string, metricName string) (models.Metrics, e
 import (
         "context"
         "database/sql"
+        "errors"
 
-        "github.com/golang-migrate/migrate"
-        "github.com/golang-migrate/migrate/database/postgres"
+        "github.com/golang-migrate/migrate/v4"
+        "github.com/golang-migrate/migrate/v4/database/postgres"
+        _ "github.com/golang-migrate/migrate/v4/source/file"
         config "github.com/igortoigildin/go-metrics-altering/config/server"
         "github.com/igortoigildin/go-metrics-altering/internal/models"
         "github.com/igortoigildin/go-metrics-altering/pkg/logger"
-        _ "github.com/jackc/pgx/v5/stdlib"
+        _ "github.com/lib/pq"
+
         "go.uber.org/zap"
 )
 
@@ -1942,7 +1946,25 @@ func New(cfg *config.ConfigServer) *PGStorage <span class="cov0" title="0">{
         }</span>
         <span class="cov0" title="0">logger.Log.Info("database connection pool established")
 
-        instance, err := postgres.WithInstance(db, &amp;postgres.Config{})
+        // Migrating DB
+        if err := runMigrations("migrations", db); err != nil </span><span class="cov0" title="0">{
+                logger.Log.Fatal("could not migrate db: %s", zap.Error(err))
+        }</span>
+
+        <span class="cov0" title="0">logger.Log.Info("database connection established")
+
+        rep := &amp;PGStorage{
+                conn: db,
+        }
+
+        return rep</span>
+}
+
+func runMigrations(migrationsPath string, db *sql.DB) error <span class="cov0" title="0">{
+        if migrationsPath == "" </span><span class="cov0" title="0">{
+                return errors.New("missing migrations path")
+        }</span>
+        <span class="cov0" title="0">instance, err := postgres.WithInstance(db, &amp;postgres.Config{})
         if err != nil </span><span class="cov0" title="0">{
                 logger.Log.Fatal("migration error", zap.Error(err))
         }</span>
@@ -1954,13 +1976,7 @@ func New(cfg *config.ConfigServer) *PGStorage <span class="cov0" title="0">{
         <span class="cov0" title="0">if err = migrator.Up(); err != nil &amp;&amp; err != migrate.ErrNoChange </span><span class="cov0" title="0">{
                 logger.Log.Fatal("migration error", zap.Error(err))
         }</span>
-        <span class="cov0" title="0">logger.Log.Info("database connection established")
-
-        rep := &amp;PGStorage{
-                conn: db,
-        }
-
-        return rep</span>
+        <span class="cov0" title="0">return nil</span>
 }
 
 func (pg *PGStorage) SetStrategy(metricType string) <span class="cov0" title="0">{
@@ -1969,12 +1985,14 @@ func (pg *PGStorage) SetStrategy(metricType string) <span class="cov0" title="0"
                         conn: pg.conn,
                 }
                 pg.strategy = &amp;count
-        }</span> else<span class="cov0" title="0"> {
-                gauge := gauge{
-                        conn: pg.conn,
-                }
-                pg.strategy = &amp;gauge
+                return
         }</span>
+
+        <span class="cov0" title="0">gauge := gauge{
+                conn: pg.conn,
+        }
+        pg.strategy = &amp;gauge</span>
+
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) error <span class="cov0" title="0">{
@@ -2231,9 +2249,9 @@ import (
 )
 
 const (
-        publicKey = "public.pem"
+        publicKey  = "public.pem"
         privateKey = "private.pem"
-        keysDir = "keys"
+        keysDir    = "keys"
 )
 
 func InitRSAKeys(cfg *config.ConfigServer) error <span class="cov8" title="1">{
@@ -2249,13 +2267,13 @@ func InitRSAKeys(cfg *config.ConfigServer) error <span class="cov8" title="1">{
                 return err
         }</span>
 
-        <span class="cov8" title="1">err = saveKey("/" + privateKey, privateKeyPEM, 0777)
+        <span class="cov8" title="1">err = saveKey("/"+privateKey, privateKeyPEM, 0777)
         if err != nil </span><span class="cov0" title="0">{
                 logger.Log.Error("error:", zap.Error(err))
                 return err
         }</span>
 
-        <span class="cov8" title="1">err = saveKey("/" + publicKey, publicKeyPEM, 0777)
+        <span class="cov8" title="1">err = saveKey("/"+publicKey, publicKeyPEM, 0777)
         if err != nil </span><span class="cov0" title="0">{
                 logger.Log.Error("error:", zap.Error(err))
                 return err
@@ -2294,8 +2312,8 @@ func GenerateRSAKeys(cfg *config.ConfigServer) ([]byte, []byte, error) <span cla
         return privateKeyPEM, publicKeyPEM, nil</span>
 }
 
-func saveKey(name string, data []byte, perm fs.FileMode) error <span class="cov8" title="1">{ 
-        err := os.WriteFile(keysDir + name, data, perm)
+func saveKey(name string, data []byte, perm fs.FileMode) error <span class="cov8" title="1">{
+        err := os.WriteFile(keysDir+name, data, perm)
         if err != nil </span><span class="cov0" title="0">{
                 logger.Log.Error("error saving key to the file", zap.Error(err))
                 return err

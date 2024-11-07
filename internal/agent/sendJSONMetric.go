@@ -73,7 +73,6 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 				if _, err = req.Post(req.URL); err == nil {
 					break
 				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
 			}
 			return ErrConnectionFailed
 		default:
@@ -131,11 +130,10 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 				if _, err = req.Post(req.URL); err == nil {
 					break
 				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
 			}
 			return ErrConnectionFailed
 		default:
-			logger.Log.Info("unexpected sending metric error via URL:", zap.Error(err))
+			logger.Log.Info("unexpected sending metric error:", zap.Error(err))
 			return err
 		}
 	}

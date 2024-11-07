@@ -1,13 +1,13 @@
 [
   {
-    "id": "PollCount",
-    "type": "counter",
-    "delta": 0
-  },
-  {
     "id": "count_metric",
     "type": "counter",
     "delta": 25
+  },
+  {
+    "id": "PollCount",
+    "type": "counter",
+    "delta": 0
   },
   {
     "id": "gauge_metric",

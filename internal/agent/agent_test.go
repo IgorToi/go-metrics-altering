@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
+	configSrv "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,6 +30,12 @@ func TestSendJSONGauge(t *testing.T) {
 		if err != nil {
 			log.Println(err)
 		}
+		// var val float64 = 0
+		if metric.ID == "Alloc1" {
+			time.Sleep(time.Second * 5)
+			//w.WriteHeader(http.StatusRequestTimeout)
+			return
+		}
 		assert.Equal(t, "/update/", r.URL.String())
 		w.Write([]byte(successResponse))
 	}))
@@ -35,7 +44,15 @@ func TestSendJSONGauge(t *testing.T) {
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
 		URL:         server.URL,
+		FlagHashKey: "123",
+		FlagRSAEncryption: true,
+		FlagCryptoKey: "keys/public.pem",
 	}
+
+	// preparing temp config
+	cfgServer := configSrv.ConfigServer{}
+	// init temp rsa keys
+	_ = crypt.InitRSAKeys(&cfgServer)
 
 	tests := []struct {
 		name    string
@@ -60,6 +77,15 @@ func TestSendJSONGauge(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Retry",
+			args: args{
+				metricName: "Alloc1",
+				cfg:        &cfg,
+				value:      0.00,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -68,6 +94,15 @@ func TestSendJSONGauge(t *testing.T) {
 			}
 		})
 	}
+
+	cfgnew := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         "incorrect",
+	}
+	if err := SendJSONGauge("new", &cfgnew, float64(0)); (err != nil) {
+		_ = err
+	}
+		
 }
 
 func TestSendURLGauge(t *testing.T) {
@@ -168,10 +203,20 @@ func TestSendJSONCounter(t *testing.T) {
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
+
 	cfg := config.ConfigAgent{
 		FlagRunAddr: "localhost:8080",
 		URL:         server.URL,
+		FlagHashKey: "123",
+		FlagRSAEncryption: true,
+		FlagCryptoKey: "keys/public.pem",
 	}
+
+	// preparing temp config
+	cfgServer := configSrv.ConfigServer{}
+	// init temp rsa keys
+	_ = crypt.InitRSAKeys(&cfgServer)
+
 	tests := []struct {
 		name    string
 		args    args
@@ -193,5 +238,13 @@ func TestSendJSONCounter(t *testing.T) {
 				t.Errorf("SendJSONCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+
+	cfgnew1 := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         "incorrect",
+	}
+	if err := SendJSONCounter(1, &cfgnew1); (err != nil) {
+		_ = err
 	}
 }
