@@ -1,0 +1,7 @@
+[
+  {
+    "id": "PollCount",
+    "type": "counter",
+    "delta": 0
+  }
+]

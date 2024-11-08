@@ -1,80 +1,55 @@
 package psql
 
 import (
+	"context"
+	"database/sql"
+	"log"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
-// var db *sql.DB
+func TestPGStorage_GetAll(t *testing.T) {
+	db, mock := NewMock()
 
-// func TestMain(m *testing.M) {
-// 	pool, err := dockertest.NewPool("")
-// 	if err != nil {
-// 		log.Fatalf("could not constuct pool: %s", err)
-// 	}
+	mock.ExpectQuery(`SELECT name, value FROM gauges WHERE type = ?`).WithArgs("gauge").WillReturnRows(
+		sqlmock.NewRows([]string{"name", "value"}).AddRow("test_metric", 1.25))
+	mock.ExpectQuery(`SELECT name, value FROM counters WHERE type = ?`).WithArgs("counter").WillReturnRows(
+		sqlmock.NewRows([]string{"name", "value"}).AddRow("test_metric", 1.25))
 
-// 	err = pool.Client.Ping()
-// 	if err != nil {
-// 		log.Fatalf("could not connect to Docker: %s", err)
-// 	}
+	subject := PGStorage{
+		conn: db,
+	}
 
-// 	// pulls an image, creates a container based on it and runs it
-// 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-// 		Repository: "postgres",
-// 		Tag:        "11",
-// 		Env: []string{
-// 			"POSTGRES_PASSWORD=secret",
-// 			"POSTGRES_USER=user_name",
-// 			"POSTGRES_DB=dbname",
-// 			"listen_addresses = '*'",
-// 		},
-// 	}, func(config *docker.HostConfig) {
-// 		// set AutoRemove to true so that stopped container goes away by itself
-// 		config.AutoRemove = true
-// 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-// 	})
-// 	if err != nil {
-// 		log.Fatalf("could not start resource: %s", err)
-// 	}
+	resp, err := subject.GetAll(context.Background())
 
-// 	hostAndPort := resource.GetHostPort("5432/tcp")
-// 	databaseUrl := fmt.Sprintf("posrgres://user_name:secret@%s/dbname?sslmode=disable", hostAndPort)
+	assert.Nil(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, 1, len(resp))
+}
 
-// 	log.Println("Connecting to database on url: ", databaseUrl)
+func NewMock() (*sql.DB, sqlmock.Sqlmock) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		log.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
 
-// 	resource.Expire(120) // Tell docker to hard kill the container in 120 seconds
+	return db, mock
+}
 
-// 	// exponentioal backoff-retry, because the application in the container might not be ready to accept connections yet
-// 	pool.MaxWait = 120 * time.Second
-// 	if err = pool.Retry(func() error {
-// 		db, err = sql.Open("postgres", databaseUrl)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		return db.Ping()
-// 	}); err != nil {
-// 		log.Fatalf("Could not connect to docker: %s", err)
-// 	}
+func TestPGStorage_SetStrategy(t *testing.T) {
+	pg1 := PGStorage{}
+	pg1.SetStrategy(CountType)
 
-// 	// Migrating DB
-// 	if err := runMigrations("../../migrations", db); err != nil {
-// 		log.Fatalf("Could not migrate db: %s", err)
-// 	}
+	_, ok := pg1.strategy.(*Count)
+	assert.True(t, ok)
 
-// 	code := m.Run()
+	pg2 := PGStorage{}
+	pg2.SetStrategy(GaugeType)
 
-// 	if err := pool.Purge(resource); err != nil {
-// 		log.Fatalf("could not purge resource: %s", err)
-// 	}
-
-// 	os.Exit(code)
-// }
-
-// func TestDatabase(t *testing.T) {
-//     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-//     defer cancel()
-
-//     rows, err := db.QueryContext(ctx, "SELECT 1")
-//     assert.NoError(t, err)
-//     assert.True(t, rows.Next())
-// }
+	_, ok = pg2.strategy.(*Gauge)
+	assert.True(t, ok)
+}

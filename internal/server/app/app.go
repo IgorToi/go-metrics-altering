@@ -21,9 +21,7 @@ var buildDate string = "N/A"
 var buildCommit string = "N/A"
 
 func Run(cfg *config.ConfigServer) {
-	fmt.Printf("Build version: %s\n", buildVersion)
-	fmt.Printf("Build date: %s\n", buildDate)
-	fmt.Printf("Build commit: %s\n", buildCommit)
+	printInfo()
 
 	ctx := context.Background()
 
@@ -36,7 +34,8 @@ func Run(cfg *config.ConfigServer) {
 	logger.Log.Info("Starting server on", zap.String("address", cfg.FlagRunAddr))
 
 	// HTTP server
-	httpSrv := httpServer.New(r, httpServer.Address(cfg.FlagRunAddr))
+	srv, _ := httpServer.Address(cfg.FlagRunAddr)
+	httpSrv := httpServer.New(r, srv)
 
 	// waiting signal
 	interrupt := make(chan os.Signal, 1)
@@ -56,4 +55,12 @@ func Run(cfg *config.ConfigServer) {
 	}
 
 	logger.Log.Info("Graceful server shutdown complete...")
+}
+
+func printInfo() error {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+
+	return nil
 }

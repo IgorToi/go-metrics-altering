@@ -42,11 +42,11 @@ func TestSendJSONGauge(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         server.URL,
-		FlagHashKey: "123",
+		FlagRunAddr:       "localhost:8080",
+		URL:               server.URL,
+		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
-		FlagCryptoKey: "keys/public.pem",
+		FlagCryptoKey:     "keys/public.pem",
 	}
 
 	// preparing temp config
@@ -99,10 +99,10 @@ func TestSendJSONGauge(t *testing.T) {
 		FlagRunAddr: "localhost:8080",
 		URL:         "incorrect",
 	}
-	if err := SendJSONGauge("new", &cfgnew, float64(0)); (err != nil) {
+	if err := SendJSONGauge("new", &cfgnew, float64(0)); err != nil {
 		_ = err
 	}
-		
+
 }
 
 func TestSendURLGauge(t *testing.T) {
@@ -117,10 +117,20 @@ func TestSendURLGauge(t *testing.T) {
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
+
 	cfg := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         server.URL,
+		FlagRunAddr:       "localhost:8080",
+		URL:               server.URL,
+		FlagHashKey:       "123",
+		FlagRSAEncryption: true,
+		FlagCryptoKey:     "keys/public.pem",
 	}
+
+	// preparing temp config
+	cfgServer := configSrv.ConfigServer{}
+	// init temp rsa keys
+	_ = crypt.InitRSAKeys(&cfgServer)
+
 	tests := []struct {
 		name    string
 		args    args
@@ -143,6 +153,14 @@ func TestSendURLGauge(t *testing.T) {
 			}
 		})
 	}
+
+	cfgnew := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         "incorrect",
+	}
+	if err := SendJSONGauge("new", &cfgnew, float64(0)); err != nil {
+		_ = err
+	}
 }
 
 func Test_sendURLCounter(t *testing.T) {
@@ -156,10 +174,20 @@ func Test_sendURLCounter(t *testing.T) {
 		w.Write([]byte(successResponse))
 	}))
 	defer server.Close()
+
 	cfg := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         server.URL,
+		FlagRunAddr:       "localhost:8080",
+		URL:               server.URL,
+		FlagHashKey:       "123",
+		FlagRSAEncryption: true,
+		FlagCryptoKey:     "keys/public.pem",
 	}
+
+	// preparing temp config
+	cfgServer := configSrv.ConfigServer{}
+	// init temp rsa keys
+	_ = crypt.InitRSAKeys(&cfgServer)
+
 	tests := []struct {
 		name    string
 		args    args
@@ -181,6 +209,14 @@ func Test_sendURLCounter(t *testing.T) {
 				t.Errorf("SendURLCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+
+	cfgnew1 := config.ConfigAgent{
+		FlagRunAddr: "localhost:8080",
+		URL:         "incorrect",
+	}
+	if err := sendURLCounter(&cfgnew1, 1); err != nil {
+		assert.Error(t, err)
 	}
 }
 
@@ -205,11 +241,11 @@ func TestSendJSONCounter(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         server.URL,
-		FlagHashKey: "123",
+		FlagRunAddr:       "localhost:8080",
+		URL:               server.URL,
+		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
-		FlagCryptoKey: "keys/public.pem",
+		FlagCryptoKey:     "keys/public.pem",
 	}
 
 	// preparing temp config
@@ -244,7 +280,7 @@ func TestSendJSONCounter(t *testing.T) {
 		FlagRunAddr: "localhost:8080",
 		URL:         "incorrect",
 	}
-	if err := SendJSONCounter(1, &cfgnew1); (err != nil) {
-		_ = err
+	if err := SendJSONCounter(1, &cfgnew1); err != nil {
+		assert.Error(t, err)
 	}
 }

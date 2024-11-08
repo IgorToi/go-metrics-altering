@@ -8,6 +8,7 @@ import (
 	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
+	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,4 +34,20 @@ func TestMemoryStats_UpdateCPURAMStat(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	assert.Equal(t, 3, len(m.GaugeMetrics))
+}
+
+func TestMemoryStats_ReadMetrics(t *testing.T) {
+	mem := New()
+	mem.CounterMetric = 2
+	mem.GaugeMetrics = map[string]float64{"first": float64(5)}
+
+	ch := make(chan models.Metrics, 2)
+	cfg := config.ConfigAgent{}
+	mem.ReadMetrics(&cfg, ch)
+
+	fm := <-ch
+	assert.Equal(t, "first", fm.ID)
+
+	sm := <-ch
+	assert.NotNil(t, sm.Delta)
 }

@@ -43,11 +43,9 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 				if _, err = client.Do(r); err == nil {
 					break
 				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
 			}
 			return ErrConnectionFailed
 		default:
-			logger.Log.Info("unexpected sending metric error via URL:", zap.Error(err))
 			return err
 		}
 	}
@@ -76,24 +74,31 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 	}
 
 	client := http.Client{}
+
 	_, err = client.Do(r)
+
 	if err != nil {
 		switch {
 		case os.IsTimeout(err):
-			for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
-				time.Sleep(delay)
-				if _, err = client.Do(r); err == nil {
-					break
-				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
+			err := retryURL(client, r)
+			if err != nil {
+				return err
 			}
-			return ErrConnectionFailed
 		default:
-			logger.Log.Info("unexpected sending metric error via URL:", zap.Error(err))
 			return err
 		}
 	}
 
 	logger.Log.Info("sent url gauge metric:", zap.Float64(metricName, value))
 	return nil
+}
+
+func retryURL(client http.Client, r *http.Request) error {
+	for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
+		time.Sleep(delay)
+		if _, err := client.Do(r); err == nil {
+			return nil
+		}
+	}
+	return ErrConnectionFailed
 }

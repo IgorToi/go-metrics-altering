@@ -69,20 +69,20 @@ func runMigrations(migrationsPath string, db *sql.DB) error {
 	return nil
 }
 
-func (pg *PGStorage) SetStrategy(metricType string) {
+func (pg *PGStorage) SetStrategy(metricType string) error {
 	if metricType == config.CountType {
-		count := count{
+		count := Count{
 			conn: pg.conn,
 		}
 		pg.strategy = &count
-		return
+		return nil
 	}
 
-	gauge := gauge{
+	gauge := Gauge{
 		conn: pg.conn,
 	}
 	pg.strategy = &gauge
-
+	return nil
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) error {
@@ -105,7 +105,7 @@ func (pg *PGStorage) Get(ctx context.Context, metricType string, metricName stri
 
 func (pg *PGStorage) GetAll(ctx context.Context) (map[string]any, error) {
 	metrics := make(map[string]any, 33)
-	rows, err := pg.conn.QueryContext(ctx, "SELECT name, value FROM gauges WHERE type = $1", GaugeType)
+	rows, err := pg.conn.QueryContext(ctx, `SELECT name, value FROM gauges WHERE type = ?`, GaugeType)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (pg *PGStorage) GetAll(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err = pg.conn.QueryContext(ctx, "SELECT name, value FROM counters WHERE type = $1", CountType)
+	rows, err = pg.conn.QueryContext(ctx, `SELECT name, value FROM counters WHERE type = ?`, CountType)
 	if err != nil {
 		return nil, err
 	}

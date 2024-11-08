@@ -67,7 +67,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.StringVar(&cfg.FlagHashKey, "k", "", "hash key")
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/public.pem", "path to public key")
 	flag.StringVar(&cfg.FlagConfigName, "c", "configAgent.json", "name of the config with json data")
-	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", false, "whether communication should be encrypted using rsa keys")
+	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", true, "whether communication should be encrypted using rsa keys")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {

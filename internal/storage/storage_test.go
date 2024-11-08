@@ -10,6 +10,7 @@ import (
 
 func TestNew(t *testing.T) {
 	cfg := config.ConfigServer{}
+	cfg.FlagStorePath = "temp"
 	s := New(&cfg)
 
 	_, ok := s.(*local.LocalStorage)

@@ -20,11 +20,7 @@ var buildDate string = "N/A"
 var buildCommit string = "N/A"
 
 func Run(cfg *config.ConfigAgent) {
-	fmt.Printf("Build version: %s\n", buildVersion)
-	fmt.Printf("Build date: %s\n", buildDate)
-	fmt.Printf("Build commit: %s\n", buildCommit)
-
-	logger.Log.Info("loading metrics...")
+	printInfo()
 
 	memoryStats := memory.New()
 	var wg sync.WaitGroup
@@ -90,4 +86,13 @@ func Run(cfg *config.ConfigAgent) {
 	wg.Wait()
 
 	logger.Log.Info("Graceful agent shutdown complete...")
+}
+
+func printInfo() error {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+
+	logger.Log.Info("loading metrics...")
+	return nil
 }
