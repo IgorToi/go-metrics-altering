@@ -11,12 +11,11 @@ import (
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Println("error while logading config", err)
-		return
+		log.Fatal("error while logading config", err)
 	}
+
 	if err := logger.Initialize(cfg.FlagLogLevel); err != nil {
-		log.Println("error while initializing logger", err)
-		return
+		log.Fatal("error while initializing logger", err)
 	}
 
 	app.Run(cfg)

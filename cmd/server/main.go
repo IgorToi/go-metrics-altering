@@ -14,19 +14,16 @@ import (
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Println("error while logading config", err)
-		return
+		log.Fatal("error while logading config", err)
 	}
 
 	if err = logger.Initialize(cfg.FlagLogLevel); err != nil {
-		log.Println("error while initializing logger", err)
-		return
+		log.Fatal("error while initializing logger", err)
 	}
 
 	err = crypt.InitRSAKeys(cfg)
 	if err != nil {
 		logger.Log.Error("error while generating rsa keys", zap.Error(err))
-		return
 	}
 
 	app.Run(cfg)

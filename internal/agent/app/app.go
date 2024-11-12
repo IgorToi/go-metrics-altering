@@ -88,11 +88,10 @@ func Run(cfg *config.ConfigAgent) {
 	logger.Log.Info("Graceful agent shutdown complete...")
 }
 
-func printInfo() error {
+func printInfo() {
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	logger.Log.Info("loading metrics...")
-	return nil
 }
