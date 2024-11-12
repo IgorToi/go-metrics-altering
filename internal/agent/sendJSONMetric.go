@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"bytes"
-	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
@@ -14,6 +12,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -34,8 +33,7 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 	}
 
 	metric := models.GaugeConstructor(value, metricName)
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json")
 
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
@@ -52,20 +50,20 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
 	}
 
-	req.Method = resty.MethodPost
-	var compressedRequest bytes.Buffer
-	writer := gzip.NewWriter(&compressedRequest)
-	_, err = writer.Write(metricsJSON)
-	if err != nil {
-		logger.Log.Info("error while compressing request:", zap.Error(err))
-		return err
+	if cfg.FlagRSAEncryption {
+		publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
+		if err != nil {
+			logger.Log.Info("error while reading rsa public key:", zap.Error(err))
+		}
+
+		// encrypting using public key
+		metricsJSON, err = crypt.Encrypt(publicKeyPEM, metricsJSON)
+		if err != nil {
+			logger.Log.Error("error while encrypting data")
+		}
 	}
-	err = writer.Close()
-	if err != nil {
-		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
-		return err
-	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + updEndpoint)
+
+	_, err = req.SetBody(metricsJSON).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
 		switch {
@@ -75,7 +73,6 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 				if _, err = req.Post(req.URL); err == nil {
 					break
 				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
 			}
 			return ErrConnectionFailed
 		default:
@@ -93,8 +90,8 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 	agent := resty.New()
 
 	metric := models.CounterConstructor(int64(counter))
-	req := agent.R().SetHeader("Content-Type", "application/json").SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip")
+	req := agent.R().SetHeader("Content-Type", "application/json")
+
 	metricJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Info("marshalling json error:", zap.Error(err))
@@ -108,19 +105,22 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 		dst := h.Sum(nil)
 		req.SetHeader("HashSHA256", fmt.Sprintf("%x", dst))
 	}
-	var compressedRequest bytes.Buffer
-	writer := gzip.NewWriter(&compressedRequest)
-	_, err = writer.Write(metricJSON)
-	if err != nil {
-		logger.Log.Info("error while compressing request:", zap.Error(err))
-		return err
+
+	if cfg.FlagRSAEncryption {
+		publicKeyPEM, err := os.ReadFile(cfg.FlagCryptoKey)
+		if err != nil {
+			logger.Log.Info("error while reading rsa public key:", zap.Error(err))
+			return err
+		}
+		// encrypting using public key
+		metricJSON, err = crypt.Encrypt(publicKeyPEM, metricJSON)
+		if err != nil {
+			logger.Log.Error("error while encrypting data")
+			return err
+		}
 	}
-	err = writer.Close()
-	if err != nil {
-		logger.Log.Info("error while closing gzip writer:", zap.Error(err))
-		return err
-	}
-	_, err = req.SetBody(compressedRequest.Bytes()).Post(cfg.URL + updEndpoint)
+
+	_, err = req.SetBody(metricJSON).Post(cfg.URL + updEndpoint)
 	if err != nil {
 		// send again n times if timeout error
 		switch {
@@ -130,11 +130,10 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 				if _, err = req.Post(req.URL); err == nil {
 					break
 				}
-				logger.Log.Info("timeout error, server not reachable:", zap.Error(err))
 			}
 			return ErrConnectionFailed
 		default:
-			logger.Log.Info("unexpected sending metric error via URL:", zap.Error(err))
+			logger.Log.Info("unexpected sending metric error:", zap.Error(err))
 			return err
 		}
 	}

@@ -3,19 +3,25 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 
 	_ "net/http/pprof" // подключаем пакет pprof
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	local "github.com/igortoigildin/go-metrics-altering/internal/storage/inmemory"
-	psql "github.com/igortoigildin/go-metrics-altering/internal/storage/postgres"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	processjson "github.com/igortoigildin/go-metrics-altering/pkg/processJSON"
 	"go.uber.org/zap"
+)
+
+const (
+	path = "keys/private.pem"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.45.0 --name=Storage
@@ -24,26 +30,6 @@ type Storage interface {
 	Get(ctx context.Context, metricType string, metricName string) (models.Metrics, error)
 	GetAll(ctx context.Context) (map[string]any, error)
 	Ping(ctx context.Context) error
-}
-
-func New(cfg *config.ConfigServer) Storage {
-	if cfg.FlagDBDSN != "" {
-		storage := psql.New(cfg)
-		return storage
-	}
-
-	memory := local.New()
-
-	if cfg.FlagRestore {
-		err := memory.LoadMetricsFromFile(cfg.FlagStorePath)
-		if err != nil {
-			logger.Log.Error("error loading metrics from the file", zap.Error(err))
-		}
-	}
-	if cfg.FlagStorePath != "" {
-		go memory.SaveAllMetricsToFile(cfg.FlagStoreInterval, cfg.FlagStorePath, cfg.FlagStorePath)
-	}
-	return memory
 }
 
 func ping(Storage Storage) http.HandlerFunc {
@@ -111,6 +97,7 @@ func updates(Storage Storage) http.HandlerFunc {
 
 func updateMetric(Storage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		ctx := r.Context()
 
 		if r.Method != http.MethodPost {
@@ -119,18 +106,32 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 			return
 		}
 
-		var req models.Metrics
-		err := processjson.ReadJSON(r, &req)
+		//obtaining private key from file
+		privateKeyPEM, err := os.ReadFile(path)
 		if err != nil {
-			logger.Log.Info("cannot decode request JSON body", zap.Error(err))
-			w.WriteHeader(http.StatusBadRequest)
+			logger.Log.Error("error while reading key", zap.Error(err))
 			return
 		}
 
-		if req.MType != config.GaugeType && req.MType != config.CountType {
-			logger.Log.Info("usupported request type", zap.String("type", req.MType))
-			w.WriteHeader(http.StatusUnprocessableEntity)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 			return
+		}
+		defer r.Body.Close()
+
+		// decrypting request body using private key
+		plaintext, err := crypt.Decrypt(privateKeyPEM, body)
+		if err != nil {
+			logger.Log.Error("error while decryping data")
+			return
+		}
+
+		var req models.Metrics
+
+		err = json.Unmarshal(plaintext, &req)
+		if err != nil {
+			logger.Log.Error("error: ", zap.Error(err))
 		}
 
 		switch req.MType {
@@ -148,6 +149,10 @@ func updateMetric(Storage Storage) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+		default:
+			logger.Log.Info("usupported request type", zap.String("type", req.MType))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 
 		resp := models.Metrics{
@@ -255,7 +260,6 @@ func getMetric(Storage Storage) http.HandlerFunc {
 
 func updatePathHandler(LocalStorage Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		metricType := r.PathValue("metricType")
 		metricName := r.PathValue("metricName")
 		metricValue := r.PathValue("metricValue")

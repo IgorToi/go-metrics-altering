@@ -5,33 +5,26 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	auth "github.com/igortoigildin/go-metrics-altering/pkg/middlewares/auth"
-	compress "github.com/igortoigildin/go-metrics-altering/pkg/middlewares/compress"
-	logging "github.com/igortoigildin/go-metrics-altering/pkg/middlewares/logging"
-	timeout "github.com/igortoigildin/go-metrics-altering/pkg/middlewares/timeout"
+	"github.com/igortoigildin/go-metrics-altering/pkg/middlewares/compress"
+	"github.com/igortoigildin/go-metrics-altering/pkg/middlewares/logging"
+	"github.com/igortoigildin/go-metrics-altering/pkg/middlewares/timeout"
 	"github.com/igortoigildin/go-metrics-altering/templates"
 )
 
 var t *template.Template
 
-func Router(ctx context.Context, cfg *config.ConfigServer, storage Storage) chi.Router {
+func Router(ctx context.Context, cfg *config.ConfigServer, storage Storage) *http.ServeMux {
 	t = templates.ParseTemplate()
-	r := chi.NewRouter()
 
-	r.Get("/value/{metricType}/{metricName}", logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(valuePathHandler(storage)), cfg))))
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updatePathHandler(storage)), cfg))))
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /value/{metricType}/{metricName}", logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(valuePathHandler(storage))))))
+	mux.HandleFunc("POST /update/{metricType}/{metricName}/{metricValue}", logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(updatePathHandler(storage))))))
+	mux.HandleFunc("GET /ping", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(http.HandlerFunc(ping(storage))))))
+	mux.HandleFunc("GET /", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(getAllmetrics(storage)))))))
+	mux.HandleFunc("POST /updates/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(updates(storage)))))))
+	mux.HandleFunc("POST /value/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(getMetric(storage)))))))
+	mux.HandleFunc("POST /update/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware((http.HandlerFunc(updateMetric(storage)))))))
 
-	r.Get("/ping", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(http.HandlerFunc(ping(storage))))))
-	r.Get("/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(getAllmetrics(storage)), cfg)))))
-	r.Post("/updates/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updates(storage)), cfg)))))
-
-	r.Post("/value/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(getMetric(storage)), cfg)))))
-	r.Post("/update/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updateMetric(storage)), cfg)))))
-
-	r.Mount("/debug", middleware.Profiler())
-
-	return r
+	return mux
 }

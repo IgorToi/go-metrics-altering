@@ -3,19 +3,20 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	_ "net/http/pprof"
+	"os"
 	"testing"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	"github.com/igortoigildin/go-metrics-altering/internal/server/api/mocks"
-	local "github.com/igortoigildin/go-metrics-altering/internal/storage/inmemory"
-	psql "github.com/igortoigildin/go-metrics-altering/internal/storage/postgres"
-	"github.com/stretchr/testify/assert"
+	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -66,12 +67,14 @@ func Test_updates(t *testing.T) {
 		mockError      error
 		respStatusCode int
 		inputIndex     []int
+		method         string
 	}{
 		{
 			name:           "Success",
 			inputIndex:     []int{0, 4},
 			metric:         input,
 			respStatusCode: 200,
+			method:         http.MethodPost,
 		},
 		{
 			name:           "Unsupported metric type",
@@ -79,6 +82,7 @@ func Test_updates(t *testing.T) {
 			metric:         input,
 			respError:      "usupported request type",
 			respStatusCode: http.StatusUnprocessableEntity,
+			method:         http.MethodPost,
 		},
 		{
 			name:           "Storage error",
@@ -86,6 +90,23 @@ func Test_updates(t *testing.T) {
 			metric:         input,
 			respStatusCode: http.StatusInternalServerError,
 			mockError:      errors.New("unexpected error"),
+			method:         http.MethodPost,
+		},
+		{
+			name:           "Storage error",
+			inputIndex:     []int{4},
+			metric:         input,
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodPost,
+		},
+		{
+			name:           "Unsupported request method",
+			inputIndex:     []int{1},
+			metric:         input,
+			respStatusCode: http.StatusMethodNotAllowed,
+			mockError:      errors.New("wrong request method"),
+			method:         http.MethodGet,
 		},
 	}
 
@@ -99,7 +120,8 @@ func Test_updates(t *testing.T) {
 			}
 
 			if tt.mockError != nil {
-				repo.On("Update", mock.Anything, tt.metric[3].MType, tt.metric[3].ID, tt.metric[3].Value).Return(tt.mockError).Times(1)
+				repo.On("Update", mock.Anything, tt.metric[3].MType, tt.metric[3].ID, tt.metric[3].Value).Return(tt.mockError).Maybe()
+				repo.On("Update", mock.Anything, tt.metric[4].MType, tt.metric[4].ID, tt.metric[4].Delta).Return(tt.mockError).Maybe()
 			}
 
 			var metrics []metric
@@ -109,7 +131,7 @@ func Test_updates(t *testing.T) {
 			js, _ := json.Marshal(metrics)
 
 			handler := updates(repo)
-			req, err := http.NewRequest(http.MethodPost, "/updates/", bytes.NewReader([]byte(js)))
+			req, err := http.NewRequest(tt.method, "/updates/", bytes.NewReader([]byte(js)))
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -171,8 +193,7 @@ func Test_updateMetric(t *testing.T) {
 			method:         http.MethodPost,
 		},
 		{
-			name:       "Storage error",
-			inputIndex: 3,
+			name: "Storage error_gauge",
 			metric: metric{
 				ID:    "4th_metric",
 				MType: "gauge",
@@ -183,9 +204,20 @@ func Test_updateMetric(t *testing.T) {
 			method:         http.MethodPost,
 		},
 		{
-			name: "Incorrect method",
+			name: "Storage error_counter",
 			metric: metric{
 				ID:    "5th_metric",
+				MType: "counter",
+				Delta: &counterValue,
+			},
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodPost,
+		},
+		{
+			name: "Incorrect method",
+			metric: metric{
+				ID:    "6th_metric",
 				MType: "counter",
 				Delta: &counterValue,
 			},
@@ -210,13 +242,33 @@ func Test_updateMetric(t *testing.T) {
 			}
 
 			if tt.mockError != nil {
-				repo.On("Update", mock.Anything, tt.metric.MType, tt.metric.ID, tt.metric.Value).Return(tt.mockError)
+				repo.On("Update", mock.Anything, tt.metric.MType, tt.metric.ID, tt.metric.Value).Return(tt.mockError).Maybe()
+				repo.On("Update", mock.Anything, tt.metric.MType, tt.metric.ID, tt.metric.Delta).Return(tt.mockError).Maybe()
 			}
 
+			// preparing temp config
+			cfg := config.ConfigServer{}
+
+			// init temp rsa keys
+			_ = crypt.InitRSAKeys(&cfg)
 			js, _ := json.Marshal(tt.metric)
 
+			//obtaining private key from file created
+			publiceKeyPEM, err := os.ReadFile("keys/public.pem")
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			// encryting JSON using private key
+			res, err := crypt.Encrypt(publiceKeyPEM, js)
+			if err != nil {
+				log.Println(err)
+			}
+
 			handler := updateMetric(repo)
-			req, err := http.NewRequest(tt.method, "/update/", bytes.NewReader([]byte(js)))
+
+			req, err := http.NewRequest(tt.method, "/update/", bytes.NewReader([]byte(res)))
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -307,6 +359,46 @@ func Test_getMetric(t *testing.T) {
 			respStatusCode: http.StatusUnprocessableEntity,
 			method:         http.MethodGet,
 			respError:      "bad request",
+		},
+		{
+			name: "Storage error_gauge",
+			req: req{
+				ID:    "next_metric",
+				MType: "counter",
+			},
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodGet,
+		},
+		{
+			name: "Storage error_gauge",
+			req: req{
+				ID:    "next_metric",
+				MType: "gauge",
+			},
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodGet,
+		},
+		{
+			name: "Storage error_gauge",
+			req: req{
+				ID:    "next_metric",
+				MType: "counter",
+			},
+			respStatusCode: http.StatusNotFound,
+			mockError:      sql.ErrNoRows,
+			method:         http.MethodGet,
+		},
+		{
+			name: "Storage error_gauge",
+			req: req{
+				ID:    "next_metric",
+				MType: "gauge",
+			},
+			respStatusCode: http.StatusNotFound,
+			mockError:      sql.ErrNoRows,
+			method:         http.MethodGet,
 		},
 	}
 
@@ -436,12 +528,22 @@ func Test_valuePathHandler(t *testing.T) {
 			response:       models.Metrics{},
 		},
 		{
-			name: "Mock error",
+			name: "Storage error_counter",
 			mod: mod{
-				ID:    "unknown",
-				MType: "wrong_type",
+				ID:    "PollCount",
+				MType: "counter",
 			},
-			respStatusCode: http.StatusUnprocessableEntity,
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodGet,
+		},
+		{
+			name: "Storage error_gauge",
+			mod: mod{
+				ID:    "New metric",
+				MType: "gauge",
+			},
+			respStatusCode: http.StatusInternalServerError,
 			mockError:      errors.New("unexpected error"),
 			method:         http.MethodGet,
 		},
@@ -556,13 +658,48 @@ func Test_updatePathHandler(t *testing.T) {
 			response:       models.Metrics{},
 		},
 		{
+			name: "Counter with wrong value",
+			mod: mod{
+				ID:     "new_metric",
+				MType:  "counter",
+				ValStr: "1.09A",
+			},
+			respStatusCode: http.StatusBadRequest,
+			respError:      "metric value is incorrect",
+			method:         http.MethodGet,
+			response:       models.Metrics{},
+		},
+		{
+			name: "Gauge with wrong value",
+			mod: mod{
+				ID:     "new_metric",
+				MType:  "gauge",
+				ValStr: "1.09A",
+			},
+			respStatusCode: http.StatusBadRequest,
+			respError:      "metric value is incorrect",
+			method:         http.MethodGet,
+			response:       models.Metrics{},
+		},
+		{
 			name: "Mock error",
 			mod: mod{
 				ID:     "unknown",
-				MType:  "wrong_type",
+				MType:  "gauge",
 				ValStr: "1",
 			},
-			respStatusCode: http.StatusBadRequest,
+			respStatusCode: http.StatusInternalServerError,
+			mockError:      errors.New("unexpected error"),
+			method:         http.MethodGet,
+		},
+		{
+			name: "Mock error",
+			mod: mod{
+				ID:     "unknown",
+				MType:  "counter",
+				ValStr: "1",
+			},
+			respStatusCode: http.StatusInternalServerError,
 			mockError:      errors.New("unexpected error"),
 			method:         http.MethodGet,
 		},
@@ -597,20 +734,6 @@ func Test_updatePathHandler(t *testing.T) {
 			require.Equal(t, tt.respStatusCode, resp.StatusCode)
 		})
 	}
-}
-
-func TestNew(t *testing.T) {
-	cfg := config.ConfigServer{}
-	s := New(&cfg)
-
-	_, ok := s.(*local.LocalStorage)
-	assert.True(t, ok)
-
-	cfg.FlagDBDSN = "temp"
-	p := New(&cfg)
-
-	_, ok = p.(*psql.PGStorage)
-	assert.True(t, ok)
 }
 
 func Test_getAllmetrics(t *testing.T) {
