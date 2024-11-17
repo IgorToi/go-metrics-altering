@@ -38,7 +38,7 @@ type ConfigAgent struct {
 	FlagCryptoKey      string `json:"crypto_key"`
 	FlagConfigName     string `json:"config_name"`
 	FlagRSAEncryption  bool
-	FlagRealIP			string 
+	FlagRealIP         string
 }
 
 func LoadConfig() (*ConfigAgent, error) {

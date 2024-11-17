@@ -24,7 +24,7 @@ func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			
+
 			// check whether X-Real-IP is the correct IP-address
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
