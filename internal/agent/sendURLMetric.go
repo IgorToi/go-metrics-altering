@@ -33,6 +33,9 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 		}
 	}
 
+	// Add X-Real-IP header as defined by agent config
+	r.Header.Add("X-Real-IP", cfg.FlagRealIP)
+
 	client := http.Client{}
 	_, err = client.Do(r)
 	if err != nil {
@@ -72,6 +75,9 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 			"HashSHA256": {fmt.Sprintf("%x", dst)},
 		}
 	}
+
+	// Add X-Real-IP header as defined by agent config
+	r.Header.Add("X-Real-IP", cfg.FlagRealIP)
 
 	client := http.Client{}
 

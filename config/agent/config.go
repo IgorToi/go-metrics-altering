@@ -38,6 +38,7 @@ type ConfigAgent struct {
 	FlagCryptoKey      string `json:"crypto_key"`
 	FlagConfigName     string `json:"config_name"`
 	FlagRSAEncryption  bool
+	FlagRealIP			string 
 }
 
 func LoadConfig() (*ConfigAgent, error) {
@@ -68,6 +69,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys/public.pem", "path to public key")
 	flag.StringVar(&cfg.FlagConfigName, "c", "configAgent.json", "name of the config with json data")
 	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", true, "whether communication should be encrypted using rsa keys")
+	flag.StringVar(&cfg.FlagRealIP, "t", "127.0.0.2", "X-Real-IP")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
