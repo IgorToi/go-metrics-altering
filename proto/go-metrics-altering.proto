@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "go-metrics-altering/proto";
+
+message GaugeMetric {
+    string name = 1; // metric name
+    double value = 2; // metric value
+}
+
+message AddGaugeRequest {
+    GaugeMetric metric = 1;
+}
+
+message AddGaugeResponse {
+    string error = 1; // error 
+}
+
+message CounterMetric {
+    string name = 1; // metric name
+    int64 value = 2; // metric value
+}
+
+message AddCounterRequest {
+    CounterMetric metric = 1;
+}
+
+message AddCounterResponse {
+    string error = 1; // error 
+}
+
+service Metrics {
+    rpc AddGaugeMetric(AddGaugeRequest) returns (AddGaugeResponse);
+    rpc AddCounterMetric(AddCounterRequest) returns (AddCounterResponse);
+}
