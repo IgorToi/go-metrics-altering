@@ -54,10 +54,8 @@ func Run(cfg *config.ConfigServer, storage storage.Storage) {
 	logger.Log.Info("Graceful server shutdown complete...")
 }
 
-func printInfo() error {
+func printInfo()  {
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
-
-	return nil
 }
