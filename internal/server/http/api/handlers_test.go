@@ -15,7 +15,7 @@ import (
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	"github.com/igortoigildin/go-metrics-altering/internal/server/api/mocks"
+	"github.com/igortoigildin/go-metrics-altering/internal/server/http/api/mocks"
 	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

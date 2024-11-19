@@ -4,7 +4,8 @@ import (
 	"log"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	"github.com/igortoigildin/go-metrics-altering/internal/server/app"
+	httpapp "github.com/igortoigildin/go-metrics-altering/internal/server/http/app"
+	"github.com/igortoigildin/go-metrics-altering/internal/storage"
 	"go.uber.org/zap"
 
 	"github.com/igortoigildin/go-metrics-altering/pkg/crypt"
@@ -26,5 +27,9 @@ func main() {
 		logger.Log.Error("error while generating rsa keys", zap.Error(err))
 	}
 
-	app.Run(cfg)
+	storage := storage.New(cfg)
+
+	go grpcapp.Run(cfg, storage)
+
+	httpapp.Run(cfg, storage)
 }

@@ -28,4 +28,4 @@ func Router(ctx context.Context, cfg *config.ConfigServer, storage Storage) *htt
 	mux.HandleFunc("POST /update/", timeout.Timeout(cfg.ContextTimout, logging.WithLogging(compress.GzipMiddleware(auth.Auth(http.HandlerFunc(updateMetric(storage)), cfg)))))
 
 	return mux
-}
+} 

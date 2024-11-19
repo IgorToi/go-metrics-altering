@@ -1,4 +1,4 @@
-package app
+package httpapp
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
+	server "github.com/igortoigildin/go-metrics-altering/internal/server/http/api"
 	storage "github.com/igortoigildin/go-metrics-altering/internal/storage"
 	httpServer "github.com/igortoigildin/go-metrics-altering/pkg/httpServer"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
@@ -20,13 +20,10 @@ var buildVersion string = "N/A"
 var buildDate string = "N/A"
 var buildCommit string = "N/A"
 
-func Run(cfg *config.ConfigServer) {
+func Run(cfg *config.ConfigServer, storage storage.Storage) {
 	printInfo()
 
 	ctx := context.Background()
-
-	// Storage
-	storage := storage.New(cfg)
 
 	// Handlers
 	r := server.Router(ctx, cfg, storage)
