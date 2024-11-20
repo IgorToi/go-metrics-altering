@@ -16,13 +16,13 @@ func TestLoadConfig(t *testing.T) {
 
 	cfg, _ := LoadConfig()
 	// assert.NoError(t, err)
-	assert.NotEmpty(t, cfg.FlagRunAddr)
+	assert.NotEmpty(t, cfg.FlagRunAddrHTTP)
 	assert.NotEmpty(t, cfg.FlagLogLevel)
 	assert.NotEmpty(t, cfg.FlagStoreInterval)
 	assert.NotEmpty(t, cfg.FlagStorePath)
 	assert.NotEmpty(t, cfg.FlagLogLevel)
 
-	assert.Equal(t, cfg.FlagRunAddr, "localhost:8080")
+	assert.Equal(t, cfg.FlagRunAddrHTTP, "localhost:8080")
 	assert.Equal(t, cfg.FlagLogLevel, "INFO")
 	assert.Equal(t, cfg.FlagHashKey, "blank/key")
 	assert.Equal(t, cfg.FlagStoreInterval, 3)

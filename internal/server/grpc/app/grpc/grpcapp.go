@@ -11,17 +11,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-
 type App struct {
 	GRPCServer *grpc.Server
-	port int
-	ip net.IP
+	port       string
 }
 
 func New(
-	port int,
+	port string,
 	storage server.Storage,
-	ip net.IP,
 ) *App {
 	gRPCServer := grpc.NewServer()
 
@@ -29,13 +26,12 @@ func New(
 
 	return &App{
 		GRPCServer: gRPCServer,
-		port: port,
-		ip: ip,
+		port:       port,
 	}
 }
 
-func(a *App) MustRun() error {
-	if err := 	a.Run(); err != nil {
+func (a *App) MustRun() error {
+	if err := a.Run(); err != nil {
 		logger.Log.Error("failed to run grpc app", zap.Error(err))
 		return errors.New("failed to start grpc app")
 	}
@@ -45,7 +41,7 @@ func(a *App) MustRun() error {
 func (a *App) Run() error {
 	const op = "grpcapp.Run"
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", a.port))
+	l, err := net.Listen("tcp", a.port)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

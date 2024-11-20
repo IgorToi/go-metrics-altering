@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	gauge = "gauge"
+	gauge   = "gauge"
 	counter = "counter"
 )
 
@@ -29,14 +29,14 @@ type ServerAPI struct {
 }
 
 func Register(gRPC *grpc.Server, storage Storage) {
-	metrics.RegisterMetricsServer(gRPC, &ServerAPI{Storage:  storage})
+	metrics.RegisterMetricsServer(gRPC, &ServerAPI{Storage: storage})
 }
 
 func (s *ServerAPI) AddGaugeMetric(ctx context.Context, req *metrics.AddGaugeRequest) (*metrics.AddGaugeResponse, error) {
 	err := s.Storage.Update(ctx, gauge, req.Metric.Name, req.Metric.Value)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
-    }
+	}
 	return nil, nil
 }
 
@@ -44,6 +44,6 @@ func (s *ServerAPI) AddCounterMetric(ctx context.Context, req *metrics.AddCounte
 	err := s.Storage.Update(ctx, counter, req.Metric.Name, req.Metric.Value)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
-    }
+	}
 	return nil, nil
 }

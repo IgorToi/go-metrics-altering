@@ -1,22 +1,18 @@
 package grpcapp
 
 import (
-	"database/sql"
-
-	"honnef.co/go/tools/config"
+	config "github.com/igortoigildin/go-metrics-altering/config/server"
+	grpcapp "github.com/igortoigildin/go-metrics-altering/internal/server/grpc/app/grpc"
+	"github.com/igortoigildin/go-metrics-altering/internal/storage"
 )
 
 type App struct {
 	GRPCServer *grpcapp.App
 }
 
-func New(
-	db *sql.DB,
-	config *config.Config,
-) *App {
-	storage := postgres.NewRepository(db)
+func New(config *config.ConfigServer, storage storage.Storage) *App {
 
-	grpcApp := grpcapp.New(config.Port, *storage, config.Ip)
+	grpcApp := grpcapp.New(config.FlagRunAddrGRPC, storage)
 
 	return &App{
 		GRPCServer: grpcApp,

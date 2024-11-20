@@ -60,7 +60,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	}
 
 	// var err error
-	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8081", "address and port to run server")
 	flag.StringVar(&cfg.FlagLogLevel, "u", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 0, "frequency of metrics being received from the runtime package")

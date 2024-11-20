@@ -4,7 +4,7 @@ import (
 	"log"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	grpcapp "github.com/igortoigildin/go-metrics-altering/internal/server/grpc/app/grpc"
+	grpcapp "github.com/igortoigildin/go-metrics-altering/internal/server/grpc/app"
 	httpapp "github.com/igortoigildin/go-metrics-altering/internal/server/http/app"
 	"github.com/igortoigildin/go-metrics-altering/internal/storage"
 	"go.uber.org/zap"
@@ -30,9 +30,14 @@ func main() {
 
 	storage := storage.New(cfg)
 
-	grpcapp.New()
+	application := grpcapp.New(cfg, storage)
 
-	go grpcapp.Run(cfg, storage)
+	go func() {
+		err := application.GRPCServer.MustRun()
+		if err != nil {
+			logger.Log.Fatal("error while initializing grpc app", zap.Error(err))
+		}
+	}()
 
 	httpapp.Run(cfg, storage)
 }

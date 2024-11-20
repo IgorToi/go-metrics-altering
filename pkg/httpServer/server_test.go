@@ -7,7 +7,7 @@ import (
 	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
-	server "github.com/igortoigildin/go-metrics-altering/internal/server/api"
+	server "github.com/igortoigildin/go-metrics-altering/internal/server/http/api"
 	"github.com/igortoigildin/go-metrics-altering/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
