@@ -4,6 +4,7 @@ import (
 	"log"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
+	grpcapp "github.com/igortoigildin/go-metrics-altering/internal/server/grpc/app/grpc"
 	httpapp "github.com/igortoigildin/go-metrics-altering/internal/server/http/app"
 	"github.com/igortoigildin/go-metrics-altering/internal/storage"
 	"go.uber.org/zap"
@@ -28,6 +29,8 @@ func main() {
 	}
 
 	storage := storage.New(cfg)
+
+	grpcapp.New()
 
 	go grpcapp.Run(cfg, storage)
 

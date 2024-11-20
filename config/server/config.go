@@ -31,7 +31,8 @@ const defaultSrvConfig = `{
 var errCfgVarEmpty = errors.New("configs variable not set")
 
 type ConfigServer struct {
-	FlagRunAddr       string `json:"address"`
+	FlagRunAddrHTTP       string `json:"address"`
+	FlagRunAddrGRPC       string `json:"address"`
 	Template          *template.Template
 	FlagLogLevel      string `json:"log_level"`
 	FlagStoreInterval int    `json:"store_interval"`
@@ -65,7 +66,8 @@ func LoadConfig() (*ConfigServer, error) {
 		fmt.Println("error while decoding data from config.json", err)
 	}
 
-	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
+	flag.StringVar(&cfg.FlagRunAddrHTTP, "a", ":8080", "address and port to run HTTP server")
+	flag.StringVar(&cfg.FlagRunAddrGRPC, "a", ":8081", "address and port to run gRPC server")
 	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
@@ -78,8 +80,12 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagTrustedSubnet, "t", "127.0.0.0/8", "trusted_subnet")
 	flag.Parse()
 
-	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		cfg.FlagRunAddr = envRunAddr
+	if envRunAddr := os.Getenv("ADDRESS_HTTP"); envRunAddr != "" {
+		cfg.FlagRunAddrHTTP = envRunAddr
+	}
+
+	if envRunAddr := os.Getenv("ADDRESS_GRPC"); envRunAddr != "" {
+		cfg.FlagRunAddrGRPC = envRunAddr
 	}
 
 	if envRSAKey := os.Getenv("CRYPTO_KEY"); envRSAKey != "" {
