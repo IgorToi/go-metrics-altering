@@ -27,7 +27,8 @@ const defaultAgentConfig = `{
 }`
 
 type ConfigAgent struct {
-	FlagRunAddr        string        `json:"address"`
+	FlagRunAddrHTTP    string        `json:"address"`
+	FlagRunPortGRPC		string
 	FlagReportInterval int           `json:"report_interval"`
 	FlagPollInterval   int           `json:"poll_interval"`
 	FlagLogLevel       string        `json:"log_level"`
@@ -60,7 +61,8 @@ func LoadConfig() (*ConfigAgent, error) {
 	}
 
 	// var err error
-	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8081", "address and port to run server")
+	flag.StringVar(&cfg.FlagRunAddrHTTP, "ah", "localhost:8080", "address and port of server")
+	flag.StringVar(&cfg.FlagRunPortGRPC, "ag", ":8081", "grpc port to dial")
 	flag.StringVar(&cfg.FlagLogLevel, "u", "info", "log level")
 	flag.IntVar(&cfg.FlagReportInterval, "r", 10, "frequency of metrics being sent")
 	flag.IntVar(&cfg.FlagPollInterval, "p", 0, "frequency of metrics being received from the runtime package")
@@ -73,7 +75,7 @@ func LoadConfig() (*ConfigAgent, error) {
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		cfg.FlagRunAddr = envRunAddr
+		cfg.FlagRunAddrHTTP = envRunAddr
 	}
 
 	if envCofigName := os.Getenv("CONFIG"); envCofigName != "" {
@@ -114,6 +116,6 @@ func LoadConfig() (*ConfigAgent, error) {
 	}
 
 	cfg.PauseDuration = time.Duration(cfg.FlagReportInterval) * time.Second
-	cfg.URL = ProtocolScheme + cfg.FlagRunAddr
+	cfg.URL = ProtocolScheme + cfg.FlagRunAddrHTTP
 	return cfg, err
 }
