@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	server "github.com/igortoigildin/go-metrics-altering/internal/server/grpc"
+	adapter "github.com/igortoigildin/go-metrics-altering/pkg/interceptors/logging"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -20,7 +22,17 @@ func New(
 	port string,
 	storage server.Storage,
 ) *App {
-	gRPCServer := grpc.NewServer()
+
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.PayloadReceived),
+	}
+
+	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		logging.UnaryServerInterceptor(adapter.InterceptorLogger(logger), opts...),
+	))
 
 	server.Register(gRPCServer, storage)
 

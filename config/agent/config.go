@@ -27,8 +27,8 @@ const defaultAgentConfig = `{
 }`
 
 type ConfigAgent struct {
-	FlagRunAddrHTTP    string        `json:"address"`
-	FlagRunPortGRPC		string
+	FlagRunAddrHTTP    string `json:"address"`
+	FlagRunPortGRPC    string
 	FlagReportInterval int           `json:"report_interval"`
 	FlagPollInterval   int           `json:"poll_interval"`
 	FlagLogLevel       string        `json:"log_level"`

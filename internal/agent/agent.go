@@ -27,13 +27,13 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 		logging.WithLogOnEvents(logging.PayloadSent),
 	}
 
-	conn, err := grpc.Dial(cfg.FlagRunPortGRPC,  grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithChainUnaryInterceptor(
+	conn, err := grpc.Dial(cfg.FlagRunPortGRPC, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
 			logging.UnaryClientInterceptor(adapter.InterceptorLogger(logger), opts...),
 		))
-	 if err != nil {
+	if err != nil {
 		logger.Fatal("fail to dial grpc server")
-	 }
+	}
 	defer conn.Close()
 
 	m := pb.NewMetricsClient(conn)
@@ -55,7 +55,7 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 
 			// gRPC
 			counterMetric := pb.CounterMetric{
-				Name: "counter",
+				Name:  "counter",
 				Value: *metric.Delta,
 			}
 			resp, err := m.AddCounterMetric(context.Background(), &pb.AddCounterRequest{
@@ -66,9 +66,8 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 			}
 			if resp.Error != "" {
 				logger.Error(resp.Error)
-       		}
+			}
 
-		
 		case config.GaugeType:
 			err := SendURLGauge(cfg, *metric.Value, metric.ID)
 			if err != nil {
@@ -81,7 +80,7 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 
 			// gRPC
 			gaugeMetric := pb.GaugeMetric{
-				Name: "gauge",
+				Name:  "gauge",
 				Value: *metric.Value,
 			}
 			resp, err := m.AddGaugeMetric(context.Background(), &pb.AddGaugeRequest{
@@ -92,8 +91,7 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 			}
 			if resp.Error != "" {
 				logger.Error(resp.Error)
-       		}
+			}
 		}
 	}
 }
-

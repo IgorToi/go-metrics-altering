@@ -42,7 +42,7 @@ get-deps:
 	go get -u "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 
 .PHONY: make generate-metrics-api
-generate-delivery-api:
+generate-metrics-api:
 	mkdir -p pkg/metrics_v1
 	protoc --proto_path proto \
 	--go_out=pkg/metrics_v1 --go_opt=paths=source_relative \
