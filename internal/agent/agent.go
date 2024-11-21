@@ -6,9 +6,12 @@ package agent
 import (
 	"context"
 
+	adapter "github.com/igortoigildin/go-metrics-altering/pkg/interceptors/logging"
+
+	logging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
-	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
+
 	pb "github.com/igortoigildin/go-metrics-altering/pkg/metrics_v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -17,10 +20,20 @@ import (
 
 // SendMetrics reads metrics from metricsChan and sends it server address as defined by agent config.
 func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
-	conn, err := grpc.Dial(cfg.FlagRunPortGRPC, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		logger.Log.Fatal("fail to dial grpc server")
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.PayloadSent),
 	}
+
+	conn, err := grpc.Dial(cfg.FlagRunPortGRPC,  grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithChainUnaryInterceptor(
+			logging.UnaryClientInterceptor(adapter.InterceptorLogger(logger), opts...),
+		))
+	 if err != nil {
+		logger.Fatal("fail to dial grpc server")
+	 }
 	defer conn.Close()
 
 	m := pb.NewMetricsClient(conn)
@@ -31,14 +44,14 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 		case config.CountType:
 
 			// http
-			// err := sendURLCounter(cfg, int(*metric.Delta))
-			// if err != nil {
-			// 	logger.Log.Error("unexpected sending url counter metric error:", zap.Error(err))
-			// }
-			// err = SendJSONCounter(int(*metric.Delta), cfg)
-			// if err != nil {
-			// 	logger.Log.Error("unexpected sending json counter metric error:", zap.Error(err))
-			// }
+			err := sendURLCounter(cfg, int(*metric.Delta))
+			if err != nil {
+				logger.Error("unexpected sending url counter metric error:", zap.Error(err))
+			}
+			err = SendJSONCounter(int(*metric.Delta), cfg)
+			if err != nil {
+				logger.Error("unexpected sending json counter metric error:", zap.Error(err))
+			}
 
 			// gRPC
 			counterMetric := pb.CounterMetric{
@@ -49,23 +62,22 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 				Metric: &counterMetric,
 			})
 			if err != nil {
-				logger.Log.Error("error", zap.Error(err))
+				logger.Error("error", zap.Error(err))
 			}
 			if resp.Error != "" {
-				logger.Log.Error(resp.Error)
+				logger.Error(resp.Error)
        		}
 
-			
-
+		
 		case config.GaugeType:
-			// err := SendURLGauge(cfg, *metric.Value, metric.ID)
-			// if err != nil {
-			// 	logger.Log.Error("unexpected sending url gauge metric error:", zap.Error(err))
-			// }
-			// err = SendJSONGauge(metric.ID, cfg, *metric.Value)
-			// if err != nil {
-			// 	logger.Log.Error("unexpected sending json gauge metric error:", zap.Error(err))
-			// }
+			err := SendURLGauge(cfg, *metric.Value, metric.ID)
+			if err != nil {
+				logger.Error("unexpected sending url gauge metric error:", zap.Error(err))
+			}
+			err = SendJSONGauge(metric.ID, cfg, *metric.Value)
+			if err != nil {
+				logger.Error("unexpected sending json gauge metric error:", zap.Error(err))
+			}
 
 			// gRPC
 			gaugeMetric := pb.GaugeMetric{
@@ -76,11 +88,12 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 				Metric: &gaugeMetric,
 			})
 			if err != nil {
-				logger.Log.Error("error", zap.Error(err))
+				logger.Error("error", zap.Error(err))
 			}
 			if resp.Error != "" {
-				logger.Log.Error(resp.Error)
+				logger.Error(resp.Error)
        		}
 		}
 	}
 }
+

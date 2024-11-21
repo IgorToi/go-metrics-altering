@@ -24,6 +24,9 @@ func (c *counterRepo) Update(metricType string, metricName string, metricValue a
 	c.rm.Lock()
 	c.Counter[metricName] += v
 	c.rm.Unlock()
+
+	//logger.Log.Info("metric updated successfully", zap.Int64("counter", v))
+
 	return nil
 }
 
@@ -52,8 +55,12 @@ func (g *gaugeRepo) Update(metricType string, metricName string, metricValue any
 	g.rm.Lock()
 	g.Gauge[metricName] = v
 	g.rm.Unlock()
+
+	//logger.Log.Info("metric updated successfully", zap.Float64("gauge", v))
+
 	return nil
 }
+
 func (g *gaugeRepo) Get(metricType string, metricName string) (models.Metrics, error) {
 	var metric models.Metrics
 
