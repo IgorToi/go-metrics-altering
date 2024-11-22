@@ -26,3 +26,6 @@ vendor/
 
 #
 *.pem
+
+#
+.html

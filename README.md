@@ -25,7 +25,7 @@ go run cmd/agent/agent.go
 <!-- start:code block -->
 
 ```shell
-go test ./...
+make test-cover
 ```
 
 <!-- end:code block -->

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path"
 	"strconv"
 	"time"
 )
@@ -32,7 +33,7 @@ var errCfgVarEmpty = errors.New("configs variable not set")
 
 type ConfigServer struct {
 	FlagRunAddrHTTP   string `json:"address"`
-	FlagRunAddrGRPC   string `json:"address"`
+	FlagRunAddrGRPC   string
 	Template          *template.Template
 	FlagLogLevel      string `json:"log_level"`
 	FlagStoreInterval int    `json:"store_interval"`
@@ -48,11 +49,10 @@ type ConfigServer struct {
 }
 
 func LoadConfig() (*ConfigServer, error) {
-	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 
-	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0777); err != nil {
-		fmt.Println(err)
+	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0666); err != nil {
+		fmt.Println("writefile error", err)
 	}
 
 	configFile, err := os.Open(cfgName)
@@ -152,4 +152,13 @@ func (cfg *ConfigServer) validate() bool {
 		return false
 	}
 	return true
+}
+
+func EnsureBaseDir(fpath string) error {
+	baseDir := path.Dir(fpath)
+	info, err := os.Stat(baseDir)
+	if err == nil && info.IsDir() {
+		return nil
+	}
+	return os.MkdirAll(baseDir, 0755)
 }

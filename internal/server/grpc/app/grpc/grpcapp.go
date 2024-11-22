@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
-	server "github.com/igortoigildin/go-metrics-altering/internal/server/grpc"
+	server "github.com/igortoigildin/go-metrics-altering/internal/server/grpc/rpcserver"
 	adapter "github.com/igortoigildin/go-metrics-altering/pkg/interceptors/logging"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 	"go.uber.org/zap"

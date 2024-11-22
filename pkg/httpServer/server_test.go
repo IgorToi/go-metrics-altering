@@ -14,7 +14,7 @@ import (
 
 func TestNew(t *testing.T) {
 	cfg := config.ConfigServer{}
-	storage := storage.New(&cfg)
+	storage, _ := storage.New(&cfg)
 	r := server.Router(context.Background(), &cfg, storage)
 	s := New(r)
 	assert.IsType(t, Server{}, *s)

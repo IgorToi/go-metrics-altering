@@ -11,7 +11,6 @@ import (
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
-	"go.uber.org/zap"
 )
 
 // Auth middleware checks whether IP request is in trusted subnet.
@@ -19,31 +18,21 @@ func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if cfg.FlagTrustedSubnet != "" {
 			ipStr := r.Header.Get("X-Real-IP")
-			if ipStr == "" {
-				logger.Log.Info("X-Real-IP header not stated")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
 
 			// check whether X-Real-IP is the correct IP-address
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
-				logger.Log.Info("Invalid IP address in X-Real-IP")
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
 			isTrusted, err := isIPInTrustedSubnet(ipStr, cfg.FlagTrustedSubnet)
 			if err != nil {
-				logger.Log.Error("error while validating IP address", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			if isTrusted {
-				logger.Log.Info("IP is in the trusted subnet")
-			} else {
-				logger.Log.Info("IP is NOT in the trusted subnet")
+			if !isTrusted {
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}
