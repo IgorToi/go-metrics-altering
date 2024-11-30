@@ -27,10 +27,11 @@ func main() {
 	}
 
 	memoryStats := memory.New()
+	ctx := context.Background()
 	var wg sync.WaitGroup
 	metricsChan := make(chan models.Metrics, 33)
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
 	logger.Log.Info("loading metrics...")
@@ -67,10 +68,10 @@ func main() {
 
 	for w := 1; w <= cfg.FlagRateLimit; w++ {
 		wg.Add(1)
-		go func() {
+		go func(ctx context.Context) {
 			defer wg.Done()
-			agent.SendMetrics(metricsChan, cfg)
-		}()
+			agent.SendMetrics(ctx, metricsChan, cfg)
+		}(ctx)
 	}
 
 	go func() {

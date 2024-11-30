@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// This code is simple enough to be copied and not imported.
 func InterceptorLogger(l *zap.Logger) logging.Logger {
 	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
 		f, _ := prepareFields(fields...)

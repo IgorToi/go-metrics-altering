@@ -26,7 +26,7 @@ func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 				return
 			}
 
-			isTrusted, err := isIPInTrustedSubnet(ipStr, cfg.FlagTrustedSubnet)
+			isTrusted, err := IsIPInTrustedSubnet(ipStr, cfg.FlagTrustedSubnet)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -41,7 +41,7 @@ func Auth(next http.HandlerFunc, cfg *config.ConfigServer) http.HandlerFunc {
 	})
 }
 
-func isIPInTrustedSubnet(ipStr string, trustedSubnet string) (bool, error) {
+func IsIPInTrustedSubnet(ipStr string, trustedSubnet string) (bool, error) {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		logger.Log.Error("invalid IP address")

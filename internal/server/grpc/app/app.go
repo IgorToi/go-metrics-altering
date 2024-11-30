@@ -12,7 +12,7 @@ type App struct {
 
 func New(config *config.ConfigServer, storage storage.Storage) *App {
 
-	grpcApp := grpcapp.New(config.FlagRunAddrGRPC, storage)
+	grpcApp := grpcapp.New(config, storage)
 
 	return &App{
 		GRPCServer: grpcApp,

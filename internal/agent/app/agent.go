@@ -12,12 +12,18 @@ import (
 	pb "github.com/igortoigildin/go-metrics-altering/pkg/metrics_v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	grpcMetadata "google.golang.org/grpc/metadata"
 
 	"go.uber.org/zap"
 )
 
-// SendMetrics reads metrics from metricsChan and sends it server address as defined by agent config.
-func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
+const (
+	XRealIp = "X-Real-IP"
+)
+
+// SendMetrics reads metrics from metricsChan and sends it to server.
+func SendMetrics(ctx context.Context, metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 	logger, _ := zap.NewDevelopment()
 	defer logger.Sync()
 
@@ -29,6 +35,7 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 		grpc.WithChainUnaryInterceptor(
 			logging.UnaryClientInterceptor(adapter.InterceptorLogger(logger), opts...),
 		))
+
 	if err != nil {
 		logger.Fatal("fail to dial grpc server")
 	}
@@ -55,7 +62,10 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 				Name:  "counter",
 				Value: *metric.Delta,
 			}
-			resp, err := m.AddCounterMetric(context.Background(), &pb.AddCounterRequest{
+			// Add metadata with "X-Real-IP" to RPC call
+			md := grpcMetadata.Pairs(XRealIp, cfg.FlagRealIP)
+
+			resp, err := m.AddCounterMetric(metadata.NewOutgoingContext(ctx, md), &pb.AddCounterRequest{
 				Metric: &counterMetric,
 			})
 			if err != nil {
@@ -80,7 +90,10 @@ func SendMetrics(metricsChan <-chan models.Metrics, cfg *config.ConfigAgent) {
 				Name:  "gauge",
 				Value: *metric.Value,
 			}
-			resp, err := m.AddGaugeMetric(context.Background(), &pb.AddGaugeRequest{
+
+			// Add metadata with "X-Real-IP" to RPC call
+			md := grpcMetadata.Pairs(XRealIp, cfg.FlagRealIP)
+			resp, err := m.AddGaugeMetric(metadata.NewOutgoingContext(ctx, md), &pb.AddGaugeRequest{
 				Metric: &gaugeMetric,
 			})
 			if err != nil {
