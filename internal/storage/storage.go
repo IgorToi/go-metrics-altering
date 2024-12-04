@@ -2,13 +2,12 @@ package storage
 
 import (
 	"context"
+	"errors"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/server"
 	"github.com/igortoigildin/go-metrics-altering/internal/models"
 	local "github.com/igortoigildin/go-metrics-altering/internal/storage/inmemory"
 	psql "github.com/igortoigildin/go-metrics-altering/internal/storage/postgres"
-	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
-	"go.uber.org/zap"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.45.0 --name=Storage
@@ -19,10 +18,13 @@ type Storage interface {
 	Ping(ctx context.Context) error
 }
 
-func New(cfg *config.ConfigServer) Storage {
+func New(cfg *config.ConfigServer) (Storage, error) {
 	if cfg.FlagDBDSN != "" {
-		storage := psql.New(cfg)
-		return storage
+		storage, err := psql.New(cfg)
+		if err != nil {
+			return nil, errors.New("failed to init storage")
+		}
+		return storage, nil
 	}
 
 	memory := local.New()
@@ -30,11 +32,11 @@ func New(cfg *config.ConfigServer) Storage {
 	if cfg.FlagRestore {
 		err := memory.LoadMetricsFromFile(cfg.FlagStorePath)
 		if err != nil {
-			logger.Log.Error("error loading metrics from the file", zap.Error(err))
+			return memory, err
 		}
 	}
 	if cfg.FlagStorePath != "" {
 		go memory.SaveAllMetricsToFile(cfg.FlagStoreInterval, cfg.FlagStorePath, cfg.FlagStorePath)
 	}
-	return memory
+	return memory, nil
 }

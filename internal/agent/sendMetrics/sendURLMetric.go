@@ -1,4 +1,4 @@
-package agent
+package sendmetrics
 
 import (
 	"crypto/hmac"
@@ -15,7 +15,7 @@ import (
 )
 
 // SendJSONCounter accepts and sends counter metrics in URL format to predefined by config server address.
-func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
+func SendURLCounter(cfg *config.ConfigAgent, counter int) error {
 	path := fmt.Sprintf("/update/%s/%s/%s", config.GaugeType, config.PollCount, strconv.Itoa(counter))
 	r, err := http.NewRequest("POST", cfg.URL+path, nil)
 	if err != nil {
@@ -32,6 +32,9 @@ func sendURLCounter(cfg *config.ConfigAgent, counter int) error {
 			"HashSHA256": {fmt.Sprintf("%x", dst)},
 		}
 	}
+
+	// Add X-Real-IP header as defined by agent config
+	r.Header.Add("X-Real-IP", cfg.FlagRealIP)
 
 	client := http.Client{}
 	_, err = client.Do(r)
@@ -72,6 +75,9 @@ func SendURLGauge(cfg *config.ConfigAgent, value float64, metricName string) err
 			"HashSHA256": {fmt.Sprintf("%x", dst)},
 		}
 	}
+
+	// Add X-Real-IP header as defined by agent config
+	r.Header.Add("X-Real-IP", cfg.FlagRealIP)
 
 	client := http.Client{}
 

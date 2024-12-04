@@ -4,9 +4,6 @@ package processjson
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
-	"go.uber.org/zap"
 )
 
 type ErrorResponse struct {
@@ -14,16 +11,10 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-func SendJSONError(w http.ResponseWriter, code int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message})
-}
-
 func ReadJSON(r *http.Request, dst any) error {
 	err := json.NewDecoder(r.Body).Decode(&dst)
 	if err != nil {
-		logger.Log.Error("error: ", zap.Error(err))
+		return err
 	}
 	return nil
 }

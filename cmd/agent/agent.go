@@ -1,10 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	config "github.com/igortoigildin/go-metrics-altering/config/agent"
-	"github.com/igortoigildin/go-metrics-altering/internal/agent/app"
+	agent "github.com/igortoigildin/go-metrics-altering/internal/agent/app"
+	"github.com/igortoigildin/go-metrics-altering/internal/agent/memory"
+	"github.com/igortoigildin/go-metrics-altering/internal/models"
+
 	"github.com/igortoigildin/go-metrics-altering/pkg/logger"
 )
 
@@ -18,5 +26,71 @@ func main() {
 		log.Fatal("error while initializing logger", err)
 	}
 
-	app.Run(cfg)
+	memoryStats := memory.New()
+	ctx := context.Background()
+	var wg sync.WaitGroup
+	metricsChan := make(chan models.Metrics, 33)
+
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+
+	logger.Log.Info("loading metrics...")
+
+	wg.Add(1)
+	go func() {
+		for {
+			time.Sleep(cfg.PauseDuration)
+			select {
+			case <-ctx.Done():
+				logger.Log.Info("Stop updating inmemory runtime metrics")
+				wg.Done()
+				return
+			default:
+				memoryStats.UpdateRunTimeStat(cfg)
+			}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		for {
+			time.Sleep(cfg.PauseDuration)
+			select {
+			case <-ctx.Done():
+				logger.Log.Info("Stop updating inmemory CPU RAM metrics")
+				wg.Done()
+				return
+			default:
+				memoryStats.UpdateCPURAMStat(cfg)
+			}
+		}
+	}()
+
+	for w := 1; w <= cfg.FlagRateLimit; w++ {
+		wg.Add(1)
+		go func(ctx context.Context) {
+			defer wg.Done()
+			agent.SendMetrics(ctx, metricsChan, cfg)
+		}(ctx)
+	}
+
+	go func() {
+		for {
+			time.Sleep(cfg.PauseDuration)
+			select {
+			case <-ctx.Done():
+				logger.Log.Info("Stop filling metrics chan with new metrics")
+				close(metricsChan)
+				return
+			default:
+				wg.Add(1)
+				memoryStats.ReadMetrics(cfg, metricsChan)
+				wg.Done()
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	logger.Log.Info("Graceful agent shutdown complete...")
 }

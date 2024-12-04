@@ -1,4 +1,4 @@
-package agent
+package sendmetrics
 
 import (
 	"crypto/hmac"
@@ -34,6 +34,9 @@ func SendJSONGauge(metricName string, cfg *config.ConfigAgent, value float64) er
 
 	metric := models.GaugeConstructor(value, metricName)
 	req := agent.R().SetHeader("Content-Type", "application/json")
+
+	// Add X-Real-IP header as defined by agent config
+	req.SetHeader("X-Real-IP", cfg.FlagRealIP)
 
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
@@ -91,6 +94,9 @@ func SendJSONCounter(counter int, cfg *config.ConfigAgent) error {
 
 	metric := models.CounterConstructor(int64(counter))
 	req := agent.R().SetHeader("Content-Type", "application/json")
+
+	// Add X-Real-IP header as defined by agent config
+	req.SetHeader("X-Real-IP", cfg.FlagRealIP)
 
 	metricJSON, err := json.Marshal(metric)
 	if err != nil {

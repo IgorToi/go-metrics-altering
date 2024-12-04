@@ -1,4 +1,4 @@
-package agent
+package sendmetrics
 
 import (
 	"encoding/json"
@@ -42,7 +42,7 @@ func TestSendJSONGauge(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr:       "localhost:8080",
+		FlagRunAddrHTTP:   "localhost:8080",
 		URL:               server.URL,
 		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
@@ -96,8 +96,8 @@ func TestSendJSONGauge(t *testing.T) {
 	}
 
 	cfgnew := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         "incorrect",
+		FlagRunAddrHTTP: "localhost:8080",
+		URL:             "incorrect",
 	}
 	if err := SendJSONGauge("new", &cfgnew, float64(0)); err != nil {
 		_ = err
@@ -119,7 +119,7 @@ func TestSendURLGauge(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr:       "localhost:8080",
+		FlagRunAddrHTTP:   "localhost:8080",
 		URL:               server.URL,
 		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
@@ -155,15 +155,15 @@ func TestSendURLGauge(t *testing.T) {
 	}
 
 	cfgnew := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         "incorrect",
+		FlagRunAddrHTTP: "localhost:8080",
+		URL:             "incorrect",
 	}
 	if err := SendJSONGauge("new", &cfgnew, float64(0)); err != nil {
 		_ = err
 	}
 }
 
-func Test_sendURLCounter(t *testing.T) {
+func Test_SendURLCounter(t *testing.T) {
 	type args struct {
 		cfg        *config.ConfigAgent
 		value      int
@@ -176,7 +176,7 @@ func Test_sendURLCounter(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr:       "localhost:8080",
+		FlagRunAddrHTTP:   "localhost:8080",
 		URL:               server.URL,
 		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
@@ -205,17 +205,17 @@ func Test_sendURLCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := sendURLCounter(tt.args.cfg, tt.args.value); (err != nil) != tt.wantErr {
+			if err := SendURLCounter(tt.args.cfg, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("SendURLCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 
 	cfgnew1 := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         "incorrect",
+		FlagRunAddrHTTP: "localhost:8080",
+		URL:             "incorrect",
 	}
-	if err := sendURLCounter(&cfgnew1, 1); err != nil {
+	if err := SendURLCounter(&cfgnew1, 1); err != nil {
 		assert.Error(t, err)
 	}
 }
@@ -241,7 +241,7 @@ func TestSendJSONCounter(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.ConfigAgent{
-		FlagRunAddr:       "localhost:8080",
+		FlagRunAddrHTTP:   "localhost:8080",
 		URL:               server.URL,
 		FlagHashKey:       "123",
 		FlagRSAEncryption: true,
@@ -277,10 +277,18 @@ func TestSendJSONCounter(t *testing.T) {
 	}
 
 	cfgnew1 := config.ConfigAgent{
-		FlagRunAddr: "localhost:8080",
-		URL:         "incorrect",
+		FlagRunAddrHTTP: "localhost:8080",
+		URL:             "incorrect",
 	}
 	if err := SendJSONCounter(1, &cfgnew1); err != nil {
 		assert.Error(t, err)
 	}
+}
+
+func Test_retryURL(t *testing.T) {
+	var r http.Request
+	var client http.Client
+
+	err := retryURL(client, &r)
+	assert.NotNil(t, err)
 }

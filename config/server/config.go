@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"html/template"
-	"log"
 	"os"
+	"path"
 	"strconv"
 	"time"
 )
@@ -31,7 +32,8 @@ const defaultSrvConfig = `{
 var errCfgVarEmpty = errors.New("configs variable not set")
 
 type ConfigServer struct {
-	FlagRunAddr       string `json:"address"`
+	FlagRunAddrHTTP   string `json:"address"`
+	FlagRunAddrGRPC   string
 	Template          *template.Template
 	FlagLogLevel      string `json:"log_level"`
 	FlagStoreInterval int    `json:"store_interval"`
@@ -43,28 +45,29 @@ type ConfigServer struct {
 	FlagCryptoKey     string `json:"crypto_key"`
 	FlagConfigName    string `json:"config_name"`
 	FlagRSAEncryption bool
+	FlagTrustedSubnet string `json:"trusted_subnet"`
 }
 
 func LoadConfig() (*ConfigServer, error) {
-	// ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",`localhost`, `postgres`, `XXXXX`, `metrics`)
 	cfg := new(ConfigServer)
 
-	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0777); err != nil {
-		log.Println(err)
+	if err := os.WriteFile(cfgName, []byte(defaultSrvConfig), 0666); err != nil {
+		fmt.Println("writefile error", err)
 	}
 
 	configFile, err := os.Open(cfgName)
 	if err != nil {
-		log.Println("error while opening config.json", err)
+		fmt.Println("error while opening config.json", err)
 	}
 	defer configFile.Close()
 
 	err = json.NewDecoder(configFile).Decode(&cfg)
 	if err != nil {
-		log.Println("error while decoding data from config.json", err)
+		fmt.Println("error while decoding data from config.json", err)
 	}
 
-	flag.StringVar(&cfg.FlagRunAddr, "a", ":8080", "address and port to run server")
+	flag.StringVar(&cfg.FlagRunAddrHTTP, "ah", ":8080", "address and port to run HTTP server")
+	flag.StringVar(&cfg.FlagRunAddrGRPC, "ag", ":8081", "address and port to run gRPC server")
 	flag.StringVar(&cfg.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&cfg.FlagStoreInterval, "i", 1, "metrics backup interval")
 	flag.StringVar(&cfg.FlagStorePath, "f", "/tmp/metrics-db.json", "metrics backup storage path")
@@ -74,10 +77,15 @@ func LoadConfig() (*ConfigServer, error) {
 	flag.StringVar(&cfg.FlagCryptoKey, "crypto-key", "keys", "path to private key")
 	flag.StringVar(&cfg.FlagConfigName, "c", "configServer.json", "name of the config with json data")
 	flag.BoolVar(&cfg.FlagRSAEncryption, "rsa-bool", false, "whether communication should be encrypted using rsa keys")
+	flag.StringVar(&cfg.FlagTrustedSubnet, "t", "127.0.0.0/8", "trusted_subnet")
 	flag.Parse()
 
-	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		cfg.FlagRunAddr = envRunAddr
+	if envRunAddr := os.Getenv("ADDRESS_HTTP"); envRunAddr != "" {
+		cfg.FlagRunAddrHTTP = envRunAddr
+	}
+
+	if envRunAddr := os.Getenv("ADDRESS_GRPC"); envRunAddr != "" {
+		cfg.FlagRunAddrGRPC = envRunAddr
 	}
 
 	if envRSAKey := os.Getenv("CRYPTO_KEY"); envRSAKey != "" {
@@ -97,7 +105,6 @@ func LoadConfig() (*ConfigServer, error) {
 	}
 
 	if envStorageInterval := os.Getenv("STORE_INTERVAL"); envStorageInterval != "" {
-		// parse string env variable
 		v, err := strconv.Atoi(envStorageInterval)
 		if err != nil {
 			return nil, err
@@ -109,12 +116,15 @@ func LoadConfig() (*ConfigServer, error) {
 		cfg.FlagStorePath = envStorePath
 	}
 
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		cfg.FlagTrustedSubnet = envTrustedSubnet
+	}
+
 	if envDBDSN := os.Getenv("DATABASE_DSN"); envDBDSN != "" {
 		cfg.FlagDBDSN = envDBDSN
 	}
 
 	if envFlagRestore := os.Getenv("RESTORE"); envFlagRestore != "" {
-		// parse bool env variable
 		v, err := strconv.ParseBool(envFlagRestore)
 		if err != nil {
 			return nil, err
@@ -132,7 +142,7 @@ func LoadConfig() (*ConfigServer, error) {
 }
 
 func (cfg *ConfigServer) validate() bool {
-	if cfg.FlagRunAddr == "" {
+	if cfg.FlagRunAddrHTTP == "" {
 		return false
 	}
 	if cfg.FlagLogLevel == "" {
@@ -142,4 +152,13 @@ func (cfg *ConfigServer) validate() bool {
 		return false
 	}
 	return true
+}
+
+func EnsureBaseDir(fpath string) error {
+	baseDir := path.Dir(fpath)
+	info, err := os.Stat(baseDir)
+	if err == nil && info.IsDir() {
+		return nil
+	}
+	return os.MkdirAll(baseDir, 0755)
 }
